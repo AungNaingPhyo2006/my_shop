@@ -1,17 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-
-class MobileScannerScreen extends StatefulWidget {
+import 'package:my_shop/providers/barcode_provider.dart';
+class MobileScannerScreen extends  ConsumerStatefulWidget {
   const  MobileScannerScreen({super.key});
 
   @override
-  State< MobileScannerScreen> createState() => _MobileScannerScreenState();
+  ConsumerState< MobileScannerScreen> createState() => _MobileScannerScreenState();
 }
 
-class _MobileScannerScreenState extends State< MobileScannerScreen> {
+class _MobileScannerScreenState extends ConsumerState<MobileScannerScreen> {
     final MobileScannerController _controller = MobileScannerController();
    Barcode? _barcode;
    bool _isTorchOn = false;
+   
+  
+   
+
 
   Widget _barcodePreview(Barcode? value) {
     if (value == null) {
@@ -29,13 +34,24 @@ class _MobileScannerScreenState extends State< MobileScannerScreen> {
     );
   }
 
-  void _handleBarcode(BarcodeCapture barcodes) {
-    if (mounted) {
-      setState(() {
-        _barcode = barcodes.barcodes.firstOrNull;
-      });
-    }
+void _handleBarcode(BarcodeCapture barcodes) {
+  final value = barcodes.barcodes.firstOrNull?.displayValue;
+  if (value != null) {
+    ref.read(barcodeProvider.notifier).state = value;
+    setState(() {
+      _barcode = barcodes.barcodes.firstOrNull;
+    });
   }
+}
+
+
+  // void _handleBarcode(BarcodeCapture barcodes) {
+  //   if (mounted) {
+  //     setState(() {
+  //       _barcode = barcodes.barcodes.firstOrNull;
+  //     });
+  //   }
+  // }
 
    void _toggleFlashlight() async {
     await _controller.toggleTorch();
@@ -79,6 +95,7 @@ class _MobileScannerScreenState extends State< MobileScannerScreen> {
           bottom: 220, // Just above the barcode preview height (200)
           child: FloatingActionButton(
             mini: true,
+            // ignore: deprecated_member_use
             backgroundColor: Colors.white.withOpacity(0.8),
               onPressed: _toggleFlashlight,
               child: Icon(

@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:my_shop/bottomNavigation/main_navigator.dart';
 // import 'package:my_shop/home/home_page.dart';
 // import 'package:my_shop/screens/scanner/scanner_screen.dart';
 
 void main() {
-  runApp(const MyApp());
+   runApp(const ProviderScope(child: MyApp()));
 }
 
 class MyApp extends StatelessWidget {
