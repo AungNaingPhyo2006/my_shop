@@ -72,7 +72,11 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
   }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Inventory')),
+   appBar: AppBar(title: const Text('ကုန်ပစ္စည်း စာရင်းသွင်းခြင်း',style: TextStyle(
+    color: Colors.white, 
+    fontSize: 16,
+    fontWeight: FontWeight.bold,
+  ),), backgroundColor: Colors.deepPurple),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Form(
@@ -80,21 +84,50 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
           child: ListView(
             children: [
               Text(
-                'Scanned: ${barcodeValue ?? 'No barcode scanned'}',
-                style: const TextStyle(fontSize: 16),
+                '✅ ${barcodeValue != null ? 'ကုန်ပစ္စည်း အချက်အလက်များ ရိုက်ထည့်ပါ။': 'ဘားကုဒ် စကန် မဖတ်ရသေးပါ။'}',
+                style: const TextStyle(fontSize: 11),
               ),
               const SizedBox(height: 16),
-              _buildTextField('Barcode', barcodeController),
-              _buildTextField('Product Name', productNameController),
-              _buildTextField('Quantity', qtyController, isNumber: true),
-              _buildTextField('Buy Price', buyPriceController, isDecimal: true),
-              _buildTextField('Sell Price', sellPriceController, isDecimal: true),
-              _buildTextField('Discount', discountController, isDecimal: true),
-              _buildTextField('Remark', remarkController, maxLines: 2),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: _submit,
-                child: const Text('Submit'),
+              _buildTextField('ဘားကုဒ်', barcodeController),
+              _buildTextField('ကုန်ပစ္စည်းအမည်', productNameController),
+              _buildTextField('အရေအတွက်', qtyController, isNumber: true),
+              _buildTextField('၀ယ်စျေး', buyPriceController, isDecimal: true),
+              _buildTextField('ရောင်းစျေး', sellPriceController, isDecimal: true),
+              _buildTextField('လျှော့စျေး', discountController, isDecimal: true),
+              _buildTextField('မှတ်ချက်', remarkController, maxLines: 2),
+              const SizedBox(height: 24),
+             Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        // Add scan logic
+                      },
+                      icon: const Icon(Icons.qr_code_scanner),
+                      label: const Text('Scan'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color.fromARGB(255, 161, 214, 189),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: _submit,
+                      icon: const Icon(Icons.save),
+                      label: const Text('Submit'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color.fromARGB(255, 71, 6, 211),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                    ),
+                  ),
+                  
+                ],
               ),
             ],
           ),
@@ -111,7 +144,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
     int maxLines = 1,
   }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      padding: const EdgeInsets.symmetric(vertical: 16.0),
       child: TextFormField(
         controller: controller,
         keyboardType: isNumber
@@ -120,7 +153,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                 ? const TextInputType.numberWithOptions(decimal: true)
                 : TextInputType.text,
         validator: (value) =>
-            value == null || value.isEmpty ? 'Enter $label' : null,
+            value == null || value.isEmpty ? '⚠️ $label ရိုက်ထည့်ပါ။' : null,
         maxLines: maxLines,
         decoration: InputDecoration(
           labelText: label,
