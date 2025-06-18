@@ -12,6 +12,7 @@ class _ProductListState extends State<ProductListScreen> {
   List<Map<String, dynamic>> products = [];
   bool isLoading = true;
 
+
   @override
   void initState() {
     super.initState();
@@ -30,15 +31,15 @@ class _ProductListState extends State<ProductListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
     appBar: AppBar(
-    title: const Text('Home Screen', style: TextStyle(
+    title: const Text('Remain list', style: TextStyle(
     color: Colors.white, 
     fontSize: 20,
     fontWeight: FontWeight.bold,
   ),),
    backgroundColor: Colors.deepPurple,
   actions: [
-    IconButton(
-      icon: const Icon(Icons.delete,color: Colors.white),
+     IconButton(
+      icon:  products.isEmpty  ?const SizedBox(): const Icon(Icons.delete,color: Colors.white) ,
       onPressed: () async {
         final confirm = await showDialog<bool>(
           context: context,
@@ -78,19 +79,32 @@ class _ProductListState extends State<ProductListScreen> {
                   itemCount: products.length,
                   itemBuilder: (context, index) {
                     final product = products[index];
-                    return Card(
-                      margin: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 6),
+                   return Card(
+                      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       child: ListTile(
                         title: Text(product['product_name'] ?? 'Unnamed'),
-                        subtitle: Text(
-                          'Barcode: ${product['barcode'] ?? '-'}\n'
-                          'Qty: ${product['qty']} | Buy: ${product['buy_price']} | Sell: ${product['sell_price']} | Discount: ${product['discount']}',
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Barcode: ${product['barcode'] ?? '-'}\n'
+                              'Qty: ${product['qty']} | Buy: ${product['buy_price']} | Sell: ${product['sell_price']} | Discount: ${product['discount']}',
+                            ),
+                            if (product['qty'] == 0 || product['qty'].toString() == '0')
+                              const Padding(
+                                padding: EdgeInsets.only(top: 4),
+                                child: Text(
+                                  '⚠️ Out of stock!',
+                                  style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                          ],
                         ),
                         isThreeLine: true,
                         trailing: Text(product['remark'] ?? ''),
                       ),
                     );
+
                   },
                 ),
     );

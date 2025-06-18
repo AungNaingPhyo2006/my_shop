@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:my_shop/screens/products/product_list_screen.dart';
+import 'package:my_shop/screens/history/sell_history_screen.dart';
+import 'package:my_shop/screens/remain/product_list_screen.dart';
+import 'package:my_shop/screens/products/remain_list_screen.dart';
 import 'package:my_shop/widgets/navigate_card.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -17,9 +19,22 @@ class HomeScreen extends StatelessWidget {
         children: const [
           NavigateCard(
             label: 'Products',
+            subtitle: 'View remain products',
+            icon: Icons.receipt_long,
+            page: RemainListScreen(),
+          ),
+          NavigateCard(
+            label: 'Sales',
+            subtitle: 'View sales history',
+            icon: Icons.point_of_sale,
+            page: SellHistoryScreen(),
+          ),
+         
+           NavigateCard(
+            label: 'Remain',
             subtitle: 'View and edit your products',
             icon: Icons.person,
-            page: ProductListScreen(),
+            page:ProductListScreen(),
           ),
           NavigateCard(
             label: 'Settings',
@@ -27,6 +42,7 @@ class HomeScreen extends StatelessWidget {
             icon: Icons.settings,
             page: ProductListScreen(),
           ),
+
         ],
       ),
     );

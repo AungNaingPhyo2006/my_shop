@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:my_shop/bottomNavigation/main_navigator.dart';
 import 'package:my_shop/db/db_helper.dart';
 import 'package:my_shop/providers/barcode_provider.dart';
+import 'package:my_shop/screens/scanner/mobile_scanner_screen.dart';
 
 class InventoryScreen extends ConsumerStatefulWidget {
   const InventoryScreen({super.key});
@@ -60,6 +62,10 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
     sellPriceController.clear();
     discountController.clear();
     remarkController.clear();
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const MainNavigator()),
+    );
   }
 }
 
@@ -102,6 +108,10 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                   Expanded(
                     child: ElevatedButton.icon(
                       onPressed: () {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(builder: (_) => const MobileScannerScreen()),
+                        );
                         // Add scan logic
                       },
                       icon: const Icon(Icons.qr_code_scanner),

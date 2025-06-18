@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:my_shop/providers/barcode_provider.dart';
-import 'package:my_shop/screens/inventory/inventory_screen.dart';
-import 'package:my_shop/screens/products/product_list_screen.dart';
+import 'package:my_shop/screens/receipt/receipt_screen.dart';
 class MobileScannerScreen extends  ConsumerStatefulWidget {
   const  MobileScannerScreen({super.key});
 
@@ -44,11 +43,15 @@ void _handleBarcode(BarcodeCapture barcodes) {
       _barcode = barcodes.barcodes.firstOrNull;
     });
 
-     Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => const InventoryScreen(),
-      ),
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const ReceiptScreen()),
     );
+    //  Navigator.of(context).push(
+    //   MaterialPageRoute(
+    //     builder: (context) => const ReceiptScreen(),
+    //   ),
+    // );
     
   }
 }
