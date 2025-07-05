@@ -30,12 +30,12 @@ Future<void> main() async {
 Future<void> initHive() async {
   // For web hive does not need to be initialized.
   if (!kIsWeb) {
-    final dir = await getApplicationDocumentsDirectory();
-    Hive.init(dir.path);
+    final dir = await getApplicationDocumentsDirectory(); // Get local path
+    Hive.init(dir.path);  // Initialize Hive there
   }
 
-  Hive.registerAdapter<PlayerData>(PlayerDataAdapter());
-  Hive.registerAdapter<Settings>(SettingsAdapter());
+  Hive.registerAdapter<PlayerData>(PlayerDataAdapter()); // Register PlayerData model
+  Hive.registerAdapter<Settings>(SettingsAdapter());   // Register Settings model
 }
 
 // The main widget for this game.
