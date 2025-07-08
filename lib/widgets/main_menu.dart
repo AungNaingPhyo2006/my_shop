@@ -9,9 +9,11 @@ import '/widgets/settings_menu.dart';
 // This represents the main menu overlay.
 class MainMenu extends StatelessWidget {
   // An unique identified for this overlay.
+  // MainMenu.id ဆိုတာ overlay ထဲမှာအသုံးပြုဖို့ unique identifier ပါ။
   static const id = 'MainMenu';
 
   // Reference to parent game.
+  //game ဆိုတာ parent game (DinoRun) ကို reference လုပ်ထားတာဖြစ်ပြီး MainMenu မှ game logic တွေကို access လုပ်ဖို့လိုတယ်။
   final DinoRun game;
 
   const MainMenu(this.game, {super.key});
@@ -19,6 +21,7 @@ class MainMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
+      // BackdropFilter: နောက်က blur effect ဖြစ်အောင်လုပ်တယ်။ sigmaX နဲ့ sigmaY က blur level တွေ။
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
         child: Card(
@@ -33,6 +36,7 @@ class MainMenu extends StatelessWidget {
                 vertical: 20,
                 horizontal: 100,
               ),
+              // Wrap: vertical layout နဲ့ spacing 10 ထားတယ်။
               child: Wrap(
                 direction: Axis.vertical,
                 crossAxisAlignment: WrapCrossAlignment.center,
@@ -44,9 +48,9 @@ class MainMenu extends StatelessWidget {
                   ),
                   ElevatedButton(
                     onPressed: () {
-                      game.startGamePlay();
-                      game.overlays.remove(MainMenu.id);
-                      game.overlays.add(Hud.id);
+                      game.startGamePlay(); // game logic စတင်
+                      game.overlays.remove(MainMenu.id);  // MainMenu overlay ဖျက်
+                      game.overlays.add(Hud.id); //HUD overlay (score, life, etc) ပြပါ
                     },
                     child: const Text('Play', style: TextStyle(fontSize: 30)),
                   ),

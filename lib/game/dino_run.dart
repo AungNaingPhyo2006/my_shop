@@ -17,10 +17,14 @@ import '/widgets/pause_menu.dart';
 import '/widgets/game_over_menu.dart';
 
 // This is the main flame game class.
+// FlameGame: Flame engine ရဲ့ base game class.
+// TapDetector: screen tap detection.
+// HasCollisionDetection: components တွေရဲ့ ယှဉ်ပြိုင်မှု (collision) တွေကို handle လုပ်ပေးတယ်။
 class DinoRun extends FlameGame with TapDetector, HasCollisionDetection {
   DinoRun({super.camera});
 
   // List of all the image assets.
+  // Game မှာအသုံးပြုမယ့် image (sprites/backgrounds) နဲ့ audio files (bgm/sfx) များ preload ပြင်ဆင်ထားတယ်။
   static const _imageAssets = [
     'DinoSprites - tard.png',
     'AngryPig/Walk (36x30).png',
@@ -41,14 +45,31 @@ class DinoRun extends FlameGame with TapDetector, HasCollisionDetection {
     'jump14.wav',
   ];
 
-  late Dino _dino;
-  late Settings settings;
-  late PlayerData playerData;
-  late EnemyManager _enemyManager;
+  late Dino _dino; // _dino: Main character.
+  late Settings settings; // settings: အသံတွေအတွက် preferences.
+  late PlayerData playerData; // playerData: player score, lives data.
+  late EnemyManager _enemyManager; // _enemyManager: manager class.
+
+ //Vector2 ဆိုတာ Flame game engine မှာအသုံးပြုတဲ့ 2D vector class ဖြစ်ပြီး,
+ //(x, y) coordinate တန်ဖိုးတွေနဲ့ position, size, velocity, scale စတဲ့ 2D-related အရာတွေကို ဖော်ပြဖို့ အသုံးပြတယ်။
+ //Vector2(800, 480); // width: 800, height: 480 
+ //ဒီမှာ virtualSize ဆိုတဲ့ getter method တစ်ခုဖန်တီးထားတယ်။
+ //virtualSize ကို access လုပ်တဲ့အခါမှာ
+ //camera.viewport.virtualSize ကို return ပေးတယ်။
+ //camera: Flame game engine ထဲက camera object (game world ကိုဖော်ပြဖို့).
+ //camera.viewport: Camera ရဲ့ viewport — screen ပေါ်မှာ ဘယ်အပိုင်းကိုပြမလဲ ဆိုတာကို ပြီးခိုင်းတယ်။
+ //virtualSize: Viewport ရဲ့ virtual width & height — game world တွင် coordinate system ကိုဘယ်လိုသတ်မှတ်ထားသလဲ။
+ //camera.viewport.virtualSize = Vector2(800, 480); ဆိုတာက screen မှာ 800px × 480px ကို Flame game ရဲ့ logical coordinate system အဖြစ် သတ်မှတ်လိုက်တယ်။
+ //Vector2 get virtualSize => camera.viewport.virtualSize;
+ //Flame game မှာ game logic ထဲကနေ virtualSize ကိုအသုံးပြချင်တဲ့အခါမှာ
+ //camera.viewport.virtualSize ကို shortcut နဲ့ reference လုပ်နိုင်အောင် getter ထားတာပါ။
+ //Game size, object alignment, background centering, collision zone စတဲ့အရာတွေအတွက် virtualSize ကိုသုံးတယ်။
+ //final center = virtualSize / 2; ဆိုရင် game screen ရဲ့ center point ကို ရရှိနိုင်တယ်။
 
   Vector2 get virtualSize => camera.viewport.virtualSize;
 
   // This method get called while flame is preparing this game.
+  // Game အစပေါ်လာတဲ့အချိန် run မယ့် setup method:
   @override
   Future<void> onLoad() async {
     // Makes the game full screen and landscape only.
@@ -92,6 +113,7 @@ class DinoRun extends FlameGame with TapDetector, HasCollisionDetection {
 
   /// This method add the already created [Dino]
   /// and [EnemyManager] to this game.
+  // Game play စတင်တဲ့အချိန်မှာ Dino character နဲ့ EnemyManager ကို add လုပ်တယ်။
   void startGamePlay() {
     _dino = Dino(images.fromCache('DinoSprites - tard.png'), playerData);
     _enemyManager = EnemyManager();
@@ -101,6 +123,7 @@ class DinoRun extends FlameGame with TapDetector, HasCollisionDetection {
   }
 
   // This method remove all the actors from the game.
+  // Game reset လုပ်ချင်တဲ့အချိန် Component တွေကို game world မှထုတ်ပယ်တယ်။
   void _disconnectActors() {
     _dino.removeFromParent();
     _enemyManager.removeAllEnemies();
@@ -108,6 +131,7 @@ class DinoRun extends FlameGame with TapDetector, HasCollisionDetection {
   }
 
   // This method reset the whole game world to initial state.
+  // Game reset = player lives & score ကို default ပြန်ထားတယ်။
   void reset() {
     // First disconnect all actions from game world.
     _disconnectActors();
@@ -117,7 +141,9 @@ class DinoRun extends FlameGame with TapDetector, HasCollisionDetection {
     playerData.lives = 5;
   }
 
-  // This method gets called for each tick/frame of the game.
+  //This method gets called for each tick/frame of the game.
+  //Frame တစ်ခုစီ update ဖြစ်တိုင်း player lives စစ်တယ်။
+  //Lives = 0 ဆိုရင် Game Over overlay ဖော်ပြတယ်။
   @override
   void update(double dt) {
     // If number of lives is 0 or less, game is over.
@@ -135,6 +161,7 @@ class DinoRun extends FlameGame with TapDetector, HasCollisionDetection {
   void onTapDown(TapDownInfo info) {
     // Make dino jump only when game is playing.
     // When game is in playing state, only Hud will be the active overlay.
+    //Game playing ဖြစ်နေချိန်မှာသာ tap လုပ်လျှင် dino ကခုန်တယ်။
     if (overlays.isActive(Hud.id)) {
       _dino.jump();
     }
@@ -149,6 +176,7 @@ class DinoRun extends FlameGame with TapDetector, HasCollisionDetection {
     final playerData = playerDataBox.get('DinoRun.PlayerData');
 
     // If data is null, this is probably a fresh launch of the game.
+    //Hive မှာအရင်ရှိတာကိုဖတ်တယ်၊ မရှိရင် default PlayerData() ထည့်ထားတယ်။
     if (playerData == null) {
       // In such cases store default values in hive.
       await playerDataBox.put('DinoRun.PlayerData', PlayerData());
@@ -200,3 +228,15 @@ class DinoRun extends FlameGame with TapDetector, HasCollisionDetection {
     super.lifecycleStateChange(state);
   }
 }
+
+// | Feature       | Description                          |
+// | ------------- | ------------------------------------ |
+// | 🎮 `DinoRun`  | Flame game main class                |
+// | 🕹 Tap & Jump | Tap screen to jump                   |
+// | 🎵 BGM/SFX    | Audio manager handles sound          |
+// | 🧠 Data       | Hive မှတ်သားထားတဲ့ player & settings |
+// | 🏃 Enemies    | Spawned dynamically via EnemyManager |
+// | ⛅ Parallax    | Layered moving background            |
+// | 🧩 Overlay    | `Hud`, `PauseMenu`, `GameOverMenu`   |
+// | 🔁 Lifecycle  | Auto pause/resume app state          |
+
