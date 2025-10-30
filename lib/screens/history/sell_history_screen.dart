@@ -12,7 +12,10 @@ class SellHistoryScreen extends StatefulWidget {
 class _SellHistoryScreenState extends State<SellHistoryScreen> {
   List<Map<String, dynamic>> products = [];
   bool isLoading = true;
-
+  double givenMoney = 0.0;
+  double changeMoney = 0.0;
+  final TextEditingController givenMoneyController = TextEditingController();
+  
   @override
   void initState() {
     super.initState();
@@ -304,32 +307,118 @@ class _SellHistoryScreenState extends State<SellHistoryScreen> {
                       ),
                     ),
                     
-                    // Total Price Section
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      // ignore: deprecated_member_use
-                      color: Colors.deepPurple.withOpacity(0.05),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'TOTAL:',
+                Container(
+                    padding: const EdgeInsets.all(16),
+                    color: Colors.deepPurple.withOpacity(0.05),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'TOTAL:',
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            ),
+                            Text(
+                              formatPrice(totalPrice),
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.deepPurple[800],
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 12),
+
+                        // 💰 Input for Buyer Money
+                        TextField(
+                          keyboardType: TextInputType.number,
+                          decoration: InputDecoration(
+                            labelText: 'Buyer Money',
+                            hintText: 'Enter amount buyer gives (e.g. 20000)',
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                            prefixIcon: const Icon(Icons.payments),
+                          ),
+                          onChanged: (value) {
+                            final entered = double.tryParse(value) ?? 0.0;
+                            setState(() {
+                              givenMoney = entered;
+                              changeMoney = givenMoney - totalPrice;
+                            });
+                          },
+                        ),
+
+                        const SizedBox(height: 12),
+
+                        // 🧮 Show Change
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Change:',
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            ),
+                            Text(
+                              changeMoney.isNegative
+                                  ? 'Insufficient Money'
+                                  : formatPrice(changeMoney),
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: changeMoney.isNegative ? Colors.red : Colors.green[800],
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.deepPurple,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          onPressed: () {
+                            debugPrint('============================');
+                            debugPrint('📦 SALES RECEIPT DATA');
+                            debugPrint('Date: ${formatDate(products.isNotEmpty ? products.first['sale_date'] : null)}');
+                            debugPrint('---------------------------------');
+                            for (var product in products) {
+                              final int qty = (product['quantity_sold'] is int)
+                                  ? product['quantity_sold']
+                                  : int.tryParse(product['quantity_sold'].toString()) ?? 0;
+                              final double unitPrice = (product['sell_price'] is double)
+                                  ? product['sell_price']
+                                  : double.tryParse(product['sell_price'].toString()) ?? 0.0;
+                              final double subTotal = qty * unitPrice;
+                              debugPrint(
+                                  'Name: ${product['product_name']} | Qty: $qty | Price: $unitPrice | Subtotal: $subTotal');
+                            }
+                            debugPrint('---------------------------------');
+                            debugPrint('TOTAL: $totalPrice');
+                            debugPrint('Buyer Money: $givenMoney');
+                            debugPrint('Change: $changeMoney');
+                            debugPrint('============================');
+                          },
+                          child: const Text(
+                            'Submit',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
+                              color: Colors.white,
                             ),
                           ),
-                          Text(
-                            formatPrice(totalPrice),
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.deepPurple[800],
-                            ),
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
+                  ),
+
                   ],
                 ),
     );
