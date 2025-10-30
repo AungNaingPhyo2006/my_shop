@@ -165,38 +165,6 @@ class _SellHistoryScreenState extends State<SellHistoryScreen> {
           ),
         ),
         backgroundColor: Colors.deepPurple,
-        actions: [
-          IconButton(
-            icon: products.isEmpty ? const SizedBox() : const Icon(Icons.delete, color: Colors.white),
-            onPressed: () async {
-              final confirm = await showDialog<bool>(
-                context: context,
-                builder: (ctx) => AlertDialog(
-                  title: const Text('Delete All'),
-                  content: const Text('Are you sure you want to delete all sales records?'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.of(ctx).pop(false),
-                      child: const Text('Cancel'),
-                    ),
-                    TextButton(
-                      onPressed: () => Navigator.of(ctx).pop(true),
-                      child: const Text('Delete'),
-                    ),
-                  ],
-                ),
-              );
-
-              if (confirm == true) {
-                await DBHelper.deleteSales();
-                await _loadProducts(); // Refresh the list
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('All sales records deleted')),
-                );
-              }
-            },
-          ),
-        ],
       ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -297,6 +265,9 @@ class _SellHistoryScreenState extends State<SellHistoryScreen> {
                               ? product['sell_price']
                               : double.tryParse(product['sell_price'].toString()) ?? 0.0;
                           final double subTotal = qty * unitPrice;
+                          final qtyController = TextEditingController(
+                            text: product['quantity_sold'].toString(),
+                          );
 
                           return Container(
                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -321,16 +292,61 @@ class _SellHistoryScreenState extends State<SellHistoryScreen> {
                                   ),
                                 ),
                                 
-                                // Quantity
-                                Expanded(
-                                  flex: 1,
-                                  child: Text(
-                                    qty.toString(),
-                                    style: const TextStyle(fontSize: 14),
+                        // Editable Quantity
+                              Expanded(
+                                flex: 1,
+                                child: Container(
+                                  // ignore: deprecated_member_use
+                                  color: Colors.yellow.withOpacity(0.2), // background color for editable field
+                                  child: TextField(
+                                    controller: qtyController,
+                                    keyboardType: TextInputType.number,
                                     textAlign: TextAlign.center,
+                                    decoration: const InputDecoration(
+                                      border: InputBorder.none,
+                                    ),
+                                    onChanged: (value) async {
+                                      final newQty = int.tryParse(value) ?? 1;
+
+                                      // Prevent negative or zero
+                                      if (newQty <= 0) return;
+
+                                      setState(() {
+                                        // 1. Update qty in UI
+                                        product['quantity_sold'] = newQty;
+
+                                        // 2. Recalculate total & change money
+                                        changeMoney = givenMoney - getTotalPrice();
+                                      });
+
+                                      // 3. Update the available qty in products table
+                                      // Get current product from DB
+                                      final db = await DBHelper.database;
+                                      final List<Map<String, dynamic>> productFromDB = await db.query(
+                                        'products',
+                                        where: 'id = ?',
+                                        whereArgs: [product['product_id']],
+                                      );
+
+                                      if (productFromDB.isNotEmpty) {
+                                        int currentQty = productFromDB.first['qty'];
+
+                                        // Calculate new qty
+                                        int newAvailableQty = currentQty - newQty;
+                                        if (newAvailableQty < 0) newAvailableQty = 0;
+
+                                        await db.update(
+                                          'products',
+                                          {'qty': newAvailableQty},
+                                          where: 'id = ?',
+                                          whereArgs: [product['product_id']],
+                                        );
+                                      }
+                                    },
                                   ),
                                 ),
-                                
+                              ),
+                                                
                                 // Unit Price
                                 Expanded(
                                   flex: 2,
@@ -362,6 +378,7 @@ class _SellHistoryScreenState extends State<SellHistoryScreen> {
                     
                 Container(
                     padding: const EdgeInsets.all(16),
+                    // ignore: deprecated_member_use
                     color: Colors.deepPurple.withOpacity(0.05),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -431,35 +448,38 @@ class _SellHistoryScreenState extends State<SellHistoryScreen> {
 
                         ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.deepPurple,
+                            backgroundColor: (givenMoney <= 0 || givenMoney < totalPrice) 
+                                ? Colors.grey 
+                                : Colors.deepPurple,
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
                           ),
-                          onPressed: () async {
-                              if (products.isEmpty) return;
+                          onPressed: (givenMoney <= 0 || givenMoney < totalPrice)
+                              ? null // disable button if money is insufficient
+                              : () async {
+                                  if (products.isEmpty) return;
 
-                              setState(() => isLoading = true); // Show loading
+                                  setState(() => isLoading = true);
 
-                              final success = await sendReceiptToTelegram();
+                                  final success = await sendReceiptToTelegram();
 
-                              if (success) {
-                                // Call your DB functions on success
-                                await DBHelper.deleteSales();
-                                await _loadProducts();
+                                  if (success) {
+                                    await DBHelper.deleteSales();
+                                    await _loadProducts();
 
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Receipt sent successfully!')),
-                                );
-                              } else {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Failed to send receipt. Please try again.')),
-                                );
-                              }
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Receipt sent successfully!')),
+                                    );
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Failed to send receipt. Please try again.')),
+                                    );
+                                  }
 
-                              setState(() => isLoading = false); // Hide loading
-                            },
+                                  setState(() => isLoading = false);
+                                },
                           child: const Text(
                             'Submit',
                             style: TextStyle(
