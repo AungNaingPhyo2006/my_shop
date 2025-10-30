@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:my_shop/providers/barcode_provider.dart';
 import 'package:my_shop/screens/auth/login_screen.dart';
+import 'package:my_shop/providers/auth_provider.dart';
 
-class SettingScreen extends StatelessWidget {
+class SettingScreen extends ConsumerWidget {
   const SettingScreen({super.key});
 
-  Future<void> _confirmLogout(BuildContext context) async {
+  Future<void> _confirmLogout(BuildContext context, WidgetRef ref) async {
     final result = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -42,7 +43,12 @@ class SettingScreen extends StatelessWidget {
     if (result == true) {
       // Clear important app state (scanned barcode) on logout
       try {
-        ProviderScope.containerOf(context).read(barcodeProvider.notifier).state = null;
+        ref.read(barcodeProvider.notifier).state = null;
+      } catch (_) {}
+
+      // Clear saved credentials (if any) and navigate to Login
+      try {
+        ref.read(authProvider.notifier).logout(clearSaved: true);
       } catch (_) {}
 
       Navigator.pushAndRemoveUntil(
@@ -54,7 +60,11 @@ class SettingScreen extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(authProvider);
+    final displayName = user?['userName']?.toString() ?? 'Demo User';
+    final displayRole = user?['roleName']?.toString() ?? '';
+
     return Scaffold(
       backgroundColor: const Color(0xFFF3F4F6),
       appBar: AppBar(
@@ -95,21 +105,21 @@ class SettingScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 16),
-                  const Column(
+                  Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Demo User',
-                        style: TextStyle(
+                        displayName,
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                           color: Colors.black87,
                         ),
                       ),
-                      SizedBox(height: 4),
+                      const SizedBox(height: 4),
                       Text(
-                        'demo@shop.com',
-                        style: TextStyle(
+                        displayRole.isNotEmpty ? displayRole : '',
+                        style: const TextStyle(
                           fontSize: 14,
                           color: Colors.black54,
                         ),
@@ -151,7 +161,7 @@ class SettingScreen extends StatelessWidget {
               child: SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
-                  onPressed: () => _confirmLogout(context),
+                  onPressed: () => _confirmLogout(context, ref),
                   icon: const Icon(Icons.logout, color: Colors.white),
                   label: const Text(
                     'Logout',

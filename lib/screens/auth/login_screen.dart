@@ -1,22 +1,43 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:my_shop/bottomNavigation/main_navigator.dart';
+import 'package:my_shop/providers/auth_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class LoginScreen extends StatefulWidget {
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _isLoading = false;
   bool _obscurePassword = true;
 
-  static const demoUsername = 'demo';
-  static const demoPassword = 'demo123';
+  // For convenience add demo credentials as quick-fill
+  // static const demoUsername = 'demo';
+  // static const demoPassword = 'demo123';
+
+  @override
+  void initState() {
+    super.initState();
+    // try auto fill from saved credentials (no auto-login to be explicit)
+    _tryPrefill();
+  }
+
+  Future<void> _tryPrefill() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedUser = prefs.getString('saved_username');
+    final savedPass = prefs.getString('saved_password');
+    if (savedUser != null && savedPass != null) {
+      _usernameController.text = savedUser;
+      _passwordController.text = savedPass;
+    }
+  }
 
   @override
   void dispose() {
@@ -25,38 +46,51 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _login() async {
-    if (!_formKey.currentState!.validate()) return;
+  Future<void> _login({bool remember = false}) async {
+  if (!_formKey.currentState!.validate()) return;
 
-    setState(() => _isLoading = true);
-    await Future.delayed(const Duration(seconds: 1)); // Simulate delay
+  setState(() => _isLoading = true);
 
-    final u = _usernameController.text.trim();
-    final p = _passwordController.text;
+  final username = _usernameController.text.trim();
+  final password = _passwordController.text;
 
-    if (u == demoUsername && p == demoPassword) {
-      if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const MainNavigator()),
-        );
-      }
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Invalid username or password'),
-          behavior: SnackBarBehavior.floating,
-        ),
+  final result = await ref
+      .read(authProvider.notifier)
+      .login(username, password, remember: remember);
+
+  setState(() => _isLoading = false);
+
+  String message = '';
+  if (result == 'success') {
+    if (mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const MainNavigator()),
       );
     }
-
-    setState(() => _isLoading = false);
+    return;
+  } else if (result == 'invalid_username') {
+    message = 'Username is incorrect.';
+  } else if (result == 'invalid_password') {
+    message = 'Password is incorrect.';
+  } else if (result == 'banned') {
+    message = 'This user account has been banned.';
+  } else {
+    message = 'Login failed. Please try again.';
   }
+
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(message),
+      behavior: SnackBarBehavior.floating,
+    ),
+  );
+}
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF1565C0), // Solid deep blue background
+      backgroundColor: const Color(0xFF1565C0),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 28.0),
@@ -67,7 +101,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // App Icon
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
@@ -81,7 +114,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                     const SizedBox(height: 20),
-
                     const Text(
                       'My Shop',
                       style: TextStyle(
@@ -93,7 +125,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 40),
 
-                    // Username Field
                     TextFormField(
                       controller: _usernameController,
                       style: const TextStyle(color: Colors.white),
@@ -114,7 +145,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Password Field
                     TextFormField(
                       controller: _passwordController,
                       obscureText: _obscurePassword,
@@ -147,11 +177,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 28),
 
-                    // Login Button
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: _isLoading ? null : _login,
+                        onPressed: _isLoading ? null : () => _login(),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.orangeAccent,
                           padding: const EdgeInsets.symmetric(vertical: 14),
@@ -178,18 +207,29 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
 
-                    // Demo Credentials Button
-                    TextButton(
-                      onPressed: () {
-                        _usernameController.text = demoUsername;
-                        _passwordController.text = demoPassword;
-                      },
-                      child: const Text(
-                        'Use demo credentials',
-                        style: TextStyle(color: Colors.white70),
-                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // TextButton(
+                        //   onPressed: () {
+                        //     _usernameController.text = demoUsername;
+                        //     _passwordController.text = demoPassword;
+                        //   },
+                        //   child: const Text(
+                        //     'Use demo credentials',
+                        //     style: TextStyle(color: Colors.white70),
+                        //   ),
+                        // ),
+                        TextButton(
+                          onPressed: () => _login(remember: true),
+                          child: const Text(
+                            'Login & Save credentials',
+                            style: TextStyle(color: Colors.white70),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),

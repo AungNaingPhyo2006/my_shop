@@ -42,6 +42,7 @@ dependencies:
   path_provider: ^2.1.5
   path: ^1.9.1
   http: ^1.1.0
+  shared_preferences: ^2.0.15
   # flutter_launcher_icons should be a dev dependency and its config must be
   # placed at the top level (see below). Keep it out of regular dependencies.
 
