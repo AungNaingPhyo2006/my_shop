@@ -135,5 +135,29 @@ static Future<List<Map<String, dynamic>>> getTotalProductWithSales() async {
   ''');
 }
 
+static Future<Map<String, dynamic>?> getProductByBarcode(String barcode) async {
+  final db = await database;
+  final List<Map<String, dynamic>> result =
+      await db.query('products', where: 'barcode = ?', whereArgs: [barcode]);
+  if (result.isNotEmpty) {
+    return result.first;
+  }
+  return null;
+}
+
+static Future<void> updateProduct(String barcode, Map<String, dynamic> data) async {
+  final db = await database;
+  await db.update('products', data, where: 'barcode = ?', whereArgs: [barcode]);
+}
+
+static Future<void> deleteProduct(int id) async {
+  final db = await database;
+  await db.delete(
+    'products',
+    where: 'id = ?',
+    whereArgs: [id],
+  );
+}
+
 
 }

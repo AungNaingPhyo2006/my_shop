@@ -307,20 +307,16 @@ class _SellHistoryScreenState extends State<SellHistoryScreen> {
                                     ),
                                     onChanged: (value) async {
                                       final newQty = int.tryParse(value) ?? 1;
-
-                                      // Prevent negative or zero
                                       if (newQty <= 0) return;
 
-                                      setState(() {
-                                        // 1. Update qty in UI
-                                        product['quantity_sold'] = newQty;
+                                      final oldQty = product['quantity_sold'] ?? 1;
 
-                                        // 2. Recalculate total & change money
+                                      setState(() {
+                                        product['quantity_sold'] = newQty;
                                         changeMoney = givenMoney - getTotalPrice();
                                       });
 
-                                      // 3. Update the available qty in products table
-                                      // Get current product from DB
+                                      // Update stock in DB
                                       final db = await DBHelper.database;
                                       final List<Map<String, dynamic>> productFromDB = await db.query(
                                         'products',
@@ -330,9 +326,8 @@ class _SellHistoryScreenState extends State<SellHistoryScreen> {
 
                                       if (productFromDB.isNotEmpty) {
                                         int currentQty = productFromDB.first['qty'];
-
-                                        // Calculate new qty
-                                        int newAvailableQty = currentQty - newQty;
+                                        num diff = newQty - oldQty; // difference
+                                        num newAvailableQty = currentQty - diff;
                                         if (newAvailableQty < 0) newAvailableQty = 0;
 
                                         await db.update(
@@ -343,6 +338,7 @@ class _SellHistoryScreenState extends State<SellHistoryScreen> {
                                         );
                                       }
                                     },
+
                                   ),
                                 ),
                               ),

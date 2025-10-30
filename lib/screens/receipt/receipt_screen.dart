@@ -41,7 +41,7 @@ Future<void> _processSale() async {
     where: 'barcode = ?',
     whereArgs: [barcodeValue],
   );
-
+//Product ထည့်ထားပြီးသား မရှိရင် 
   if (result.isNotEmpty) {
     final product = result.first;
     setState(() {

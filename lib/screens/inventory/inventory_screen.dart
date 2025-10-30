@@ -35,54 +35,89 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
   }
 
   void _submit() async {
-  if (_formKey.currentState!.validate()) {
-    final data = {
-      'product_name': productNameController.text,
-      'barcode': barcodeController.text,
-      'qty': int.tryParse(qtyController.text) ?? 0,
-      'buy_price': double.tryParse(buyPriceController.text) ?? 0.0,
-      'sell_price': double.tryParse(sellPriceController.text) ?? 0.0,
-      'discount': double.tryParse(discountController.text) ?? 0.0,
-      'remark': remarkController.text,
-    };
+    if (_formKey.currentState!.validate()) {
+      final data = {
+        'product_name': productNameController.text,
+        'barcode': barcodeController.text,
+        'qty': int.tryParse(qtyController.text) ?? 0,
+        'buy_price': double.tryParse(buyPriceController.text) ?? 0.0,
+        'sell_price': double.tryParse(sellPriceController.text) ?? 0.0,
+        'discount': double.tryParse(discountController.text) ?? 0.0,
+        'remark': remarkController.text,
+      };
 
-      // ignore: avoid_print
-      // print('Test => $data');
-    
-    await DBHelper.insertProduct(data);
+      final existingProduct =
+          await DBHelper.getProductByBarcode(barcodeController.text);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Product saved to database')),
-    );
+      if (existingProduct != null) {
+        await DBHelper.updateProduct(barcodeController.text, data);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Product updated in database')),
+        );
+      } else {
+        await DBHelper.insertProduct(data);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Product saved to database')),
+        );
+      }
 
-    _formKey.currentState!.reset();
-    productNameController.clear();
-    qtyController.clear();
-    buyPriceController.clear();
-    sellPriceController.clear();
-    discountController.clear();
-    remarkController.clear();
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const MainNavigator()),
-    );
+      _formKey.currentState!.reset();
+      productNameController.clear();
+      qtyController.clear();
+      buyPriceController.clear();
+      sellPriceController.clear();
+      discountController.clear();
+      remarkController.clear();
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const MainNavigator()),
+      );
+    }
   }
-}
+
+  void _loadProductIfExists(String barcode) async {
+    final product = await DBHelper.getProductByBarcode(barcode);
+    if (product != null) {
+      productNameController.text = product['product_name'] ?? '';
+      qtyController.text = product['qty']?.toString() ?? '';
+      buyPriceController.text = product['buy_price']?.toString() ?? '';
+      sellPriceController.text = product['sell_price']?.toString() ?? '';
+      discountController.text = product['discount']?.toString() ?? '';
+      remarkController.text = product['remark'] ?? '';
+    } else {
+      // Clear fields if not found
+      productNameController.clear();
+      qtyController.clear();
+      buyPriceController.clear();
+      sellPriceController.clear();
+      discountController.clear();
+      remarkController.clear();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final barcodeValue = ref.watch(barcodeProvider);
 
-    if (barcodeValue != null && barcodeController.text.isEmpty) {
-    barcodeController.text = barcodeValue;
-  }
+    // Load product when barcode changes (also handle replacing an existing barcode)
+    if (barcodeValue != null && barcodeValue != barcodeController.text) {
+      barcodeController.text = barcodeValue;
+      _loadProductIfExists(barcodeValue);
+    }
 
     return Scaffold(
-   appBar: AppBar(title: const Text('ကုန်ပစ္စည်း စာရင်းသွင်းခြင်း',style: TextStyle(
-    color: Colors.white, 
-    fontSize: 16,
-    fontWeight: FontWeight.bold,
-  ),), backgroundColor: Colors.deepPurple),
+      appBar: AppBar(
+        title: const Text(
+          'ကုန်ပစ္စည်း စာရင်းသွင်းခြင်း',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        backgroundColor: Colors.deepPurple,
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Form(
@@ -90,7 +125,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
           child: ListView(
             children: [
               Text(
-                '✅ ${barcodeValue != null ? 'ကုန်ပစ္စည်း အချက်အလက်များ ရိုက်ထည့်ပါ။': 'ဘားကုဒ် စကန် မဖတ်ရသေးပါ။'}',
+                '✅ ${barcodeValue != null ? 'ကုန်ပစ္စည်း အချက်အလက်များ ရိုက်ထည့်ပါ။' : 'ဘားကုဒ် စကန် မဖတ်ရသေးပါ။'}',
                 style: const TextStyle(fontSize: 11),
               ),
               const SizedBox(height: 16),
@@ -102,22 +137,23 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
               _buildTextField('လျှော့စျေး', discountController, isDecimal: true),
               _buildTextField('မှတ်ချက်', remarkController, maxLines: 2),
               const SizedBox(height: 24),
-             Row(
+              Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Expanded(
                     child: ElevatedButton.icon(
                       onPressed: () {
-                        Navigator.pushReplacement(
+                        Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => const MobileScannerScreen()),
+                          MaterialPageRoute(
+                              builder: (_) => const MobileScannerScreen(mode: ScannerMode.inventory)),
                         );
-                        // Add scan logic
                       },
                       icon: const Icon(Icons.qr_code_scanner),
                       label: const Text('Scan'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color.fromARGB(255, 161, 214, 189),
+                        backgroundColor:
+                            const Color.fromARGB(255, 161, 214, 189),
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
@@ -136,7 +172,6 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                       ),
                     ),
                   ),
-                  
                 ],
               ),
             ],

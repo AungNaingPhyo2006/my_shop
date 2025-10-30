@@ -3,8 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:my_shop/providers/barcode_provider.dart';
 import 'package:my_shop/screens/receipt/receipt_screen.dart';
-class MobileScannerScreen extends  ConsumerStatefulWidget {
-  const  MobileScannerScreen({super.key});
+
+enum ScannerMode { receipt, inventory }
+
+class MobileScannerScreen extends ConsumerStatefulWidget {
+  final ScannerMode mode;
+
+  const MobileScannerScreen({super.key, this.mode = ScannerMode.receipt});
 
   @override
   ConsumerState< MobileScannerScreen> createState() => _MobileScannerScreenState();
@@ -35,26 +40,37 @@ class _MobileScannerScreenState extends ConsumerState<MobileScannerScreen> {
     );
   }
 
-void _handleBarcode(BarcodeCapture barcodes) {
-  final value = barcodes.barcodes.firstOrNull?.displayValue;
-  if (value != null) {
+  bool _isProcessing = false;
+
+  void _handleBarcode(BarcodeCapture barcodes) {
+    final value = barcodes.barcodes.isNotEmpty ? barcodes.barcodes.first.displayValue : null;
+    if (value == null) return;
+
+    // avoid multiple rapid detections causing multiple navigations/pops
+    if (_isProcessing) return;
+    _isProcessing = true;
+
     ref.read(barcodeProvider.notifier).state = value;
     setState(() {
-      _barcode = barcodes.barcodes.firstOrNull;
+      _barcode = barcodes.barcodes.first;
     });
 
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const ReceiptScreen()),
-    );
-    //  Navigator.of(context).push(
-    //   MaterialPageRoute(
-    //     builder: (context) => const ReceiptScreen(),
-    //   ),
-    // );
-    
+    // navigate depending on mode
+    if (widget.mode == ScannerMode.receipt) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const ReceiptScreen()),
+      );
+    } else {
+      // inventory mode: pop back to InventoryScreen (it will read the provider)
+      Navigator.pop(context);
+    }
+
+    // allow handling again after short delay if still mounted
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted) _isProcessing = false;
+    });
   }
-}
 
 
   // void _handleBarcode(BarcodeCapture barcodes) {
@@ -65,11 +81,11 @@ void _handleBarcode(BarcodeCapture barcodes) {
   //   }
   // }
 
-   void _toggleFlashlight() async {
+  void _toggleFlashlight() async {
     await _controller.toggleTorch();
-    final torchState = await _controller.torchState;
+    // toggle local state (we don't rely on controller.torchState getter here)
     setState(() {
-      _isTorchOn = torchState == TorchState.on;
+      _isTorchOn = !_isTorchOn;
     });
   }
 
@@ -123,8 +139,7 @@ void _handleBarcode(BarcodeCapture barcodes) {
   }
 }
 
-extension on MobileScannerController {
-  get torchState => null;
-}
+// Note: removed incorrect torchState extension. MobileScannerController provides
+// toggleTorch(); we maintain a local `_isTorchOn` flag for UI.
 
 

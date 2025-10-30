@@ -12,7 +12,6 @@ class _ProductListState extends State<ProductListScreen> {
   List<Map<String, dynamic>> products = [];
   bool isLoading = true;
 
-
   @override
   void initState() {
     super.initState();
@@ -27,50 +26,28 @@ class _ProductListState extends State<ProductListScreen> {
     });
   }
 
+  Future<void> _deleteProduct(int id) async {
+    await DBHelper.deleteProduct(id);
+    await _loadProducts(); // Refresh list after deletion
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Product deleted successfully')),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-    appBar: AppBar(
-    title: const Text('Remain list', style: TextStyle(
-    color: Colors.white, 
-    fontSize: 20,
-    fontWeight: FontWeight.bold,
-  ),),
-   backgroundColor: Colors.deepPurple,
-  actions: [
-     IconButton(
-      icon:  products.isEmpty  ?const SizedBox(): const Icon(Icons.delete,color: Colors.white) ,
-      onPressed: () async {
-        final confirm = await showDialog<bool>(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: const Text('Delete All'),
-            content: const Text('Are you sure you want to delete all products?'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(false),
-                child: const Text('Cancel'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(true),
-                child: const Text('Delete'),
-              ),
-            ],
+      appBar: AppBar(
+        title: const Text(
+          'Remain list',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
           ),
-        );
-
-        if (confirm == true) {
-          await DBHelper.deleteAllProducts();
-          await _loadProducts(); // Refresh the list
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('All products deleted')),
-          );
-        }
-      },
-    ),
-  ],
-),
-      
+        ),
+        backgroundColor: Colors.deepPurple,
+      ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : products.isEmpty
@@ -79,8 +56,9 @@ class _ProductListState extends State<ProductListScreen> {
                   itemCount: products.length,
                   itemBuilder: (context, index) {
                     final product = products[index];
-                   return Card(
-                      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    return Card(
+                      margin: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
                       child: ListTile(
                         title: Text(product['product_name'] ?? 'Unnamed'),
                         subtitle: Column(
@@ -90,21 +68,61 @@ class _ProductListState extends State<ProductListScreen> {
                               'Barcode: ${product['barcode'] ?? '-'}\n'
                               'Qty: ${product['qty']} | Buy: ${product['buy_price']} | Sell: ${product['sell_price']} | Discount: ${product['discount']}',
                             ),
-                            if (product['qty'] == 0 || product['qty'].toString() == '0')
+                            if (product['qty'] == 0)
                               const Padding(
                                 padding: EdgeInsets.only(top: 4),
                                 child: Text(
                                   '⚠️ Out of stock!',
-                                  style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                                  style: TextStyle(
+                                      color: Colors.red,
+                                      fontWeight: FontWeight.bold),
                                 ),
                               ),
                           ],
                         ),
+                          trailing: InkWell(
+                            onTap: () async {
+                              final confirm = await showDialog<bool>(
+                                context: context,
+                                builder: (ctx) => AlertDialog(
+                                  title: const Text('Delete Product'),
+                                  content: Text(
+                                      'Are you sure you want to delete "${product['product_name']}"?'),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.of(ctx).pop(false),
+                                      child: const Text('Cancel'),
+                                    ),
+                                    TextButton(
+                                      onPressed: () => Navigator.of(ctx).pop(true),
+                                      child: const Text('Delete'),
+                                    ),
+                                  ],
+                                ),
+                              );
+
+                              if (confirm == true) {
+                                await _deleteProduct(product['id']);
+                              }
+                            },
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade200, // light gray background
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: Colors.red, width: 0.2),
+                              ),
+                              child: const Icon(
+                                Icons.delete,
+                                color: Colors.red,
+                                size: 20,
+                              ),
+                            ),
+                          ),
                         isThreeLine: true,
-                        trailing: Text(product['remark'] ?? ''),
                       ),
                     );
-
                   },
                 ),
     );
