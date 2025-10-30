@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:my_shop/bottomNavigation/main_navigator.dart';
+import 'package:my_shop/screens/auth/login_screen.dart';
 // import 'package:my_shop/home/home_page.dart';
 // import 'package:my_shop/screens/scanner/scanner_screen.dart';
 
@@ -21,7 +21,7 @@ class MyApp extends StatelessWidget {
       ),
       debugShowCheckedModeBanner: false,
       // home: const ScannerScreen(),
-      home: const MainNavigator()
+      home: const LoginScreen(),
     );
   }
 }
