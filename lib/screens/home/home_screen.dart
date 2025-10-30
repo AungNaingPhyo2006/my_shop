@@ -17,19 +17,18 @@ class HomeScreen extends StatelessWidget {
   ),), backgroundColor: Colors.deepPurple),
       body: ListView(
         children: const [
+            NavigateCard(
+            label: 'Sales',
+            subtitle: 'View sales history',
+            icon: Icons.point_of_sale,
+            page: SellHistoryScreen(),
+          ),
           NavigateCard(
             label: 'Products',
             subtitle: 'View remain products',
             icon: Icons.receipt_long,
             page: RemainListScreen(),
           ),
-          NavigateCard(
-            label: 'Sales',
-            subtitle: 'View sales history',
-            icon: Icons.point_of_sale,
-            page: SellHistoryScreen(),
-          ),
-         
            NavigateCard(
             label: 'Remain',
             subtitle: 'View and edit your products',
