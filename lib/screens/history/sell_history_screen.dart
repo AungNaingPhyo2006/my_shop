@@ -55,21 +55,19 @@ class _SellHistoryScreenState extends State<SellHistoryScreen> {
     debugPrint('Products =>\n$prettyProducts');
   }
 
-  Future<void> sendReceiptToTelegram() async {
-    const String telegramBotToken = '7653380321:AAEKzt7QotYRqB36rKBaYsID3pIKFhGizGU';
+  Future<bool> sendReceiptToTelegram() async {
+  const String telegramBotToken = '7653380321:AAEKzt7QotYRqB36rKBaYsID3pIKFhGizGU';
   const String chatId = '5613994162';
 
   if (telegramBotToken.isEmpty || chatId.isEmpty) {
     debugPrint('❌ Telegram bot token or chat ID is not set.');
-    return;
+    return false;
   }
 
-  // Build the receipt text
   final StringBuffer text = StringBuffer();
   text.writeln('📩 New Sales Receipt:');
   text.writeln('Date: ${formatDate(products.isNotEmpty ? products.first['sale_date'] : null)}');
   text.writeln('---------------------------------');
-
   for (var product in products) {
     final int qty = (product['quantity_sold'] is int)
         ? product['quantity_sold']
@@ -81,7 +79,6 @@ class _SellHistoryScreenState extends State<SellHistoryScreen> {
     text.writeln(
         '- ${product['product_name']} | Qty: $qty | Price: ${formatPrice(unitPrice)} | Subtotal: ${formatPrice(subTotal)}');
   }
-
   text.writeln('---------------------------------');
   text.writeln('TOTAL: ${formatPrice(getTotalPrice())}');
   text.writeln('Buyer Money: ${formatPrice(givenMoney)}');
@@ -98,12 +95,15 @@ class _SellHistoryScreenState extends State<SellHistoryScreen> {
 
     if (response.statusCode == 200) {
       debugPrint('✅ Receipt sent to Telegram successfully!');
+      return true;
     } else {
       debugPrint('❌ Failed to send receipt. Status: ${response.statusCode}');
       debugPrint('Response body: ${response.body}');
+      return false;
     }
   } catch (e) {
     debugPrint('❌ Error sending receipt to Telegram: $e');
+    return false;
   }
 }
 
@@ -437,31 +437,29 @@ class _SellHistoryScreenState extends State<SellHistoryScreen> {
                               borderRadius: BorderRadius.circular(8),
                             ),
                           ),
-                          onPressed:  () async {
-                            debugPrint('============================');
-                            debugPrint('📦 SALES RECEIPT DATA');
-                            debugPrint('Date: ${formatDate(products.isNotEmpty ? products.first['sale_date'] : null)}');
-                            debugPrint('---------------------------------');
-                            for (var product in products) {
-                              final int qty = (product['quantity_sold'] is int)
-                                  ? product['quantity_sold']
-                                  : int.tryParse(product['quantity_sold'].toString()) ?? 0;
-                              final double unitPrice = (product['sell_price'] is double)
-                                  ? product['sell_price']
-                                  : double.tryParse(product['sell_price'].toString()) ?? 0.0;
-                              final double subTotal = qty * unitPrice;
-                              debugPrint(
-                                  'Name: ${product['product_name']} | Qty: $qty | Price: $unitPrice | Subtotal: $subTotal');
-                            }
-                            debugPrint('---------------------------------');
-                            debugPrint('TOTAL: $totalPrice');
-                            debugPrint('Buyer Money: $givenMoney');
-                            debugPrint('Change: $changeMoney');
-                            debugPrint('============================');
+                          onPressed: () async {
+                              if (products.isEmpty) return;
 
-                              // Send receipt to Telegram
-                            await sendReceiptToTelegram();
-                          },
+                              setState(() => isLoading = true); // Show loading
+
+                              final success = await sendReceiptToTelegram();
+
+                              if (success) {
+                                // Call your DB functions on success
+                                await DBHelper.deleteSales();
+                                await _loadProducts();
+
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Receipt sent successfully!')),
+                                );
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Failed to send receipt. Please try again.')),
+                                );
+                              }
+
+                              setState(() => isLoading = false); // Hide loading
+                            },
                           child: const Text(
                             'Submit',
                             style: TextStyle(
