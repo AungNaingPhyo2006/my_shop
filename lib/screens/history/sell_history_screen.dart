@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:my_shop/db/db_helper.dart';
 
 class SellHistoryScreen extends StatefulWidget {
@@ -15,7 +16,7 @@ class _SellHistoryScreenState extends State<SellHistoryScreen> {
   double givenMoney = 0.0;
   double changeMoney = 0.0;
   final TextEditingController givenMoneyController = TextEditingController();
-  
+
   @override
   void initState() {
     super.initState();
@@ -53,6 +54,58 @@ class _SellHistoryScreenState extends State<SellHistoryScreen> {
     final prettyProducts = const JsonEncoder.withIndent('  ').convert(products);
     debugPrint('Products =>\n$prettyProducts');
   }
+
+  Future<void> sendReceiptToTelegram() async {
+    const String telegramBotToken = '7653380321:AAEKzt7QotYRqB36rKBaYsID3pIKFhGizGU';
+  const String chatId = '5613994162';
+
+  if (telegramBotToken.isEmpty || chatId.isEmpty) {
+    debugPrint('❌ Telegram bot token or chat ID is not set.');
+    return;
+  }
+
+  // Build the receipt text
+  final StringBuffer text = StringBuffer();
+  text.writeln('📩 New Sales Receipt:');
+  text.writeln('Date: ${formatDate(products.isNotEmpty ? products.first['sale_date'] : null)}');
+  text.writeln('---------------------------------');
+
+  for (var product in products) {
+    final int qty = (product['quantity_sold'] is int)
+        ? product['quantity_sold']
+        : int.tryParse(product['quantity_sold'].toString()) ?? 0;
+    final double unitPrice = (product['sell_price'] is double)
+        ? product['sell_price']
+        : double.tryParse(product['sell_price'].toString()) ?? 0.0;
+    final double subTotal = qty * unitPrice;
+    text.writeln(
+        '- ${product['product_name']} | Qty: $qty | Price: ${formatPrice(unitPrice)} | Subtotal: ${formatPrice(subTotal)}');
+  }
+
+  text.writeln('---------------------------------');
+  text.writeln('TOTAL: ${formatPrice(getTotalPrice())}');
+  text.writeln('Buyer Money: ${formatPrice(givenMoney)}');
+  text.writeln('Change: ${formatPrice(changeMoney)}');
+
+  final Uri url = Uri.parse('https://api.telegram.org/bot$telegramBotToken/sendMessage');
+
+  try {
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: '{"chat_id": "$chatId", "text": "${text.toString()}", "parse_mode": "Markdown"}',
+    );
+
+    if (response.statusCode == 200) {
+      debugPrint('✅ Receipt sent to Telegram successfully!');
+    } else {
+      debugPrint('❌ Failed to send receipt. Status: ${response.statusCode}');
+      debugPrint('Response body: ${response.body}');
+    }
+  } catch (e) {
+    debugPrint('❌ Error sending receipt to Telegram: $e');
+  }
+}
 
   // Calculate total price for all products
   double getTotalPrice() {
@@ -384,7 +437,7 @@ class _SellHistoryScreenState extends State<SellHistoryScreen> {
                               borderRadius: BorderRadius.circular(8),
                             ),
                           ),
-                          onPressed: () {
+                          onPressed:  () async {
                             debugPrint('============================');
                             debugPrint('📦 SALES RECEIPT DATA');
                             debugPrint('Date: ${formatDate(products.isNotEmpty ? products.first['sale_date'] : null)}');
@@ -405,6 +458,9 @@ class _SellHistoryScreenState extends State<SellHistoryScreen> {
                             debugPrint('Buyer Money: $givenMoney');
                             debugPrint('Change: $changeMoney');
                             debugPrint('============================');
+
+                              // Send receipt to Telegram
+                            await sendReceiptToTelegram();
                           },
                           child: const Text(
                             'Submit',
