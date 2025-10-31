@@ -116,6 +116,15 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
             fontWeight: FontWeight.bold,
           ),
         ),
+        leading: IconButton(
+        icon: const Icon(Icons.arrow_back, color: Colors.white),
+        onPressed: () {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const MainNavigator()),
+          );
+        },
+      ),
         backgroundColor: Colors.deepPurple,
       ),
       body: Padding(
