@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:my_shop/db/db_helper.dart';
 
-class RemainListScreen extends StatefulWidget {
-  const RemainListScreen({super.key});
+class ProductListScreen extends StatefulWidget {
+  const ProductListScreen({super.key});
 
   @override
-  State<RemainListScreen> createState() => _RemainListScreenState();
+  State<ProductListScreen> createState() => _ProductListScreenState();
 }
 
-class _RemainListScreenState extends State<RemainListScreen> {
+class _ProductListScreenState extends State<ProductListScreen> {
   List<Map<String, dynamic>> products = [];
   bool isLoading = true;
 

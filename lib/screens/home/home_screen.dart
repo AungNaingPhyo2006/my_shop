@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:my_shop/screens/history/sell_history_screen.dart';
-import 'package:my_shop/screens/remain/product_list_screen.dart';
-import 'package:my_shop/screens/products/remain_list_screen.dart';
+import 'package:my_shop/screens/products/product_list_screen.dart';
+import 'package:my_shop/screens/remain/remain_product_list_screen.dart';
 import 'package:my_shop/widgets/navigate_card.dart';
 import 'package:my_shop/providers/auth_provider.dart';
 import 'package:my_shop/screens/auth/login_screen.dart';
@@ -61,15 +61,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
           NavigateCard(
             label: 'Products',
-            subtitle: 'View remain products',
+            subtitle: 'View all products',
             icon: Icons.receipt_long,
-            page: RemainListScreen(),
+            page:  ProductListScreen(),
           ),
           NavigateCard(
             label: 'Remain',
             subtitle: 'View and edit your products',
             icon: Icons.person,
-            page: ProductListScreen(),
+            page: RemainProductListScreen(),
           ),
           NavigateCard(
             label: 'Settings',
