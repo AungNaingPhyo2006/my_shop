@@ -84,6 +84,7 @@ class _SellHistoryScreenState extends State<SellHistoryScreen> {
   text.writeln('Buyer Money: ${formatPrice(givenMoney)}');
   text.writeln('Change: ${formatPrice(changeMoney)}');
 
+
   final Uri url = Uri.parse('https://api.telegram.org/bot$telegramBotToken/sendMessage');
 
   try {
@@ -458,6 +459,13 @@ class _SellHistoryScreenState extends State<SellHistoryScreen> {
                                   if (products.isEmpty) return;
 
                                   setState(() => isLoading = true);
+
+                                 // Insert into sales_summary
+                                  await DBHelper.insertSalesSummaryProducts(
+                                    products: products,
+                                    totalSaleAmount: getTotalPrice(),
+                                  );
+
 
                                   final success = await sendReceiptToTelegram();
 

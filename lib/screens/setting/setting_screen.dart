@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:my_shop/providers/barcode_provider.dart';
 import 'package:my_shop/screens/auth/login_screen.dart';
 import 'package:my_shop/providers/auth_provider.dart';
+import 'package:my_shop/l10n/app_localizations.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:my_shop/services/locale_service.dart';
 
 class SettingScreen extends ConsumerWidget {
   const SettingScreen({super.key});
@@ -12,11 +15,11 @@ class SettingScreen extends ConsumerWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
-          'Logout',
-          style: TextStyle(fontWeight: FontWeight.bold),
+        title: Text(
+          AppLocalizations.of(ctx)!.logout,
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
-        content: const Text('Are you sure you want to log out?'),
+        content: Text(AppLocalizations.of(ctx)!.logoutConfirmation),
         actionsAlignment: MainAxisAlignment.spaceBetween,
         actions: [
           TextButton(
@@ -24,7 +27,7 @@ class SettingScreen extends ConsumerWidget {
               foregroundColor: Colors.grey[700],
             ),
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
+            child: Text(AppLocalizations.of(ctx)!.cancel),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -34,7 +37,7 @@ class SettingScreen extends ConsumerWidget {
               ),
             ),
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Logout'),
+            child: Text(AppLocalizations.of(ctx)!.logout),
           ),
         ],
       ),
@@ -62,16 +65,16 @@ class SettingScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authProvider);
-    final displayName = user?['userName']?.toString() ?? 'Demo User';
+    final displayName = user?['userName']?.toString() ?? 'Casher';
     final displayRole = user?['roleName']?.toString() ?? '';
 
     return Scaffold(
       backgroundColor: const Color(0xFFF3F4F6),
       appBar: AppBar(
         backgroundColor: const Color(0xFF1565C0),
-        title: const Text(
-          'Settings',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        title: Text(
+          AppLocalizations.of(context)!.settings,
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
       ),
@@ -137,7 +140,7 @@ class SettingScreen extends ConsumerWidget {
                 children: [
                   ListTile(
                     leading: const Icon(Icons.settings, color: Colors.blue),
-                    title: const Text('App Settings'),
+                    title: Text(AppLocalizations.of(context)!.appSettings),
                     trailing:
                         const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
                     onTap: () {},
@@ -145,27 +148,59 @@ class SettingScreen extends ConsumerWidget {
                   const Divider(height: 1),
                   ListTile(
                     leading: const Icon(Icons.info_outline, color: Colors.orange),
-                    title: const Text('About App'),
+                    title: Text(AppLocalizations.of(context)!.aboutApp),
                     trailing:
                         const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
                     onTap: () {},
                   ),
+                  ListTile(
+                    leading: const Icon(Icons.language, color: Colors.green),
+                    title: Text(AppLocalizations.of(context)!.changeLanguage),
+                    onTap: () async {
+                      final selectedLocale = await showDialog<Locale>(
+                        context: context,
+                        builder: (_) => SimpleDialog(
+                          title: Text(AppLocalizations.of(context)!.selectLanguage),
+                          children: [
+                            SimpleDialogOption(
+                              child: const Text('English'),
+                              onPressed: () => Navigator.pop(context, const Locale('en')),
+                            ),
+                            SimpleDialogOption(
+                              child: const Text('မြန်မာ'),
+                              onPressed: () => Navigator.pop(context, const Locale('my')),
+                            ),
+                          ],
+                        ),
+                      );
+
+                      if (selectedLocale != null) {
+                        // Persist and update global app locale notifier so MaterialApp rebuilds
+                        try {
+                          final prefs = await SharedPreferences.getInstance();
+                          await prefs.setString('locale', selectedLocale.languageCode);
+                        } catch (_) {}
+                        appLocale.value = selectedLocale;
+                      }
+                    },
+                  ),
+
                   const Divider(height: 1),
                 ],
               ),
             ),
 
             // Logout Button
-            Padding(
+                  Padding(
               padding: const EdgeInsets.only(bottom: 16),
               child: SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
                   onPressed: () => _confirmLogout(context, ref),
                   icon: const Icon(Icons.logout, color: Colors.white),
-                  label: const Text(
-                    'Logout',
-                    style: TextStyle(
+                  label: Text(
+                    AppLocalizations.of(context)!.logout,
+                    style: const TextStyle(
                         fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold),
                   ),
                   style: ElevatedButton.styleFrom(
