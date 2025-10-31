@@ -46,6 +46,7 @@ dependencies:
   intl: ^0.20.2
   flutter_localizations:
     sdk: flutter
+  rename: ^3.1.0
   # flutter_launcher_icons should be a dev dependency and its config must be
   # placed at the top level (see below). Keep it out of regular dependencies.
 

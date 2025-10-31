@@ -116,12 +116,6 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
             fontWeight: FontWeight.bold,
           ),
         ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            Navigator.pop(context); // 👈 Go back to previous screen
-          },
-        ),
         backgroundColor: Colors.deepPurple,
       ),
       body: Padding(
