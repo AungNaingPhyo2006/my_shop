@@ -189,6 +189,7 @@ Widget build(BuildContext context) {
         ),
       ),
       backgroundColor: Colors.deepPurple,
+      foregroundColor: Colors.white,
       centerTitle: true,
       elevation: 4,
     ),

@@ -12,6 +12,7 @@ class ProfitScreen extends StatefulWidget {
 class _ProfitScreenState extends State<ProfitScreen> {
   DateTime? _selectedDate;
 
+
   // Fetch sales summary, optionally filtered by date
   Future<List<Map<String, dynamic>>> _fetchSalesSummary({String? selectedDate}) async {
     final db = await DBHelper.database;

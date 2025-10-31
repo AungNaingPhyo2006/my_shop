@@ -58,6 +58,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
           ),
         ),
         backgroundColor: Colors.deepPurple,
+        foregroundColor: Colors.white,
       ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())

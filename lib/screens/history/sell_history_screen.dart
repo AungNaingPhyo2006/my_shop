@@ -2,27 +2,49 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:my_shop/db/db_helper.dart';
+import 'package:my_shop/providers/auth_provider.dart';
+import 'package:my_shop/screens/auth/login_screen.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class SellHistoryScreen extends StatefulWidget {
+class SellHistoryScreen extends ConsumerStatefulWidget {
   const SellHistoryScreen({super.key});
 
   @override
-  State<SellHistoryScreen> createState() => _SellHistoryScreenState();
+  ConsumerState<SellHistoryScreen> createState() => _SellHistoryScreenState();
 }
 
-class _SellHistoryScreenState extends State<SellHistoryScreen> {
+class _SellHistoryScreenState extends ConsumerState<SellHistoryScreen> {
   List<Map<String, dynamic>> products = [];
   bool isLoading = true;
   double givenMoney = 0.0;
   double changeMoney = 0.0;
   final TextEditingController givenMoneyController = TextEditingController();
 
+
   @override
   void initState() {
     super.initState();
     _loadProducts();
+    _checkBannedStatus();
+
   }
 
+  Future<void> _checkBannedStatus() async {
+    // If current user is banned remotely, log them out and redirect to login
+    final notifier = ref.read(authProvider.notifier);
+    final isBanned = await notifier.isUserBannedRemotely();
+    if (isBanned && mounted) {
+      await notifier.logout(clearSaved: true);
+      if (mounted) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+          (route) => false,
+        );
+      }
+    }
+  }
+  
   Future<void> _loadProducts() async {
     final rawData = await DBHelper.getSales();
 
@@ -166,6 +188,7 @@ class _SellHistoryScreenState extends State<SellHistoryScreen> {
           ),
         ),
         backgroundColor: Colors.deepPurple,
+        foregroundColor: Colors.white,
       ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
