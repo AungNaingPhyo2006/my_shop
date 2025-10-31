@@ -18,9 +18,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool _isLoading = false;
   bool _obscurePassword = true;
 
-  // For convenience add demo credentials as quick-fill
-  // static const demoUsername = 'demo';
-  // static const demoPassword = 'demo123';
 
   @override
   void initState() {
@@ -211,28 +208,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                     const SizedBox(height: 12),
 
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        // TextButton(
-                        //   onPressed: () {
-                        //     _usernameController.text = demoUsername;
-                        //     _passwordController.text = demoPassword;
-                        //   },
-                        //   child: const Text(
-                        //     'Use demo credentials',
-                        //     style: TextStyle(color: Colors.white70),
-                        //   ),
-                        // ),
-                        TextButton(
-                          onPressed: () => _login(remember: true),
-                          child: const Text(
-                            'Login & Save credentials',
-                            style: TextStyle(color: Colors.white70),
-                          ),
-                        ),
-                      ],
-                    ),
+                    // Row(
+                    //   mainAxisAlignment: MainAxisAlignment.center,
+                    //   children: [
+                    //     TextButton(
+                    //       onPressed: () => _login(remember: true),
+                    //       child: const Text(
+                    //         'Quick Login',
+                    //         style: TextStyle(color: Colors.white70),
+                    //       ),
+                    //     ),
+                    //   ],
+                    // ),
                   ],
                 ),
               ),
