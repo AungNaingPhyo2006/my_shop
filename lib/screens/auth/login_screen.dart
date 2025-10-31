@@ -134,6 +134,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         prefixIcon:
                             const Icon(Icons.person_outline, color: Colors.white),
                         filled: true,
+                        // ignore: deprecated_member_use
                         fillColor: Colors.white.withOpacity(0.1),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
@@ -166,6 +167,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           },
                         ),
                         filled: true,
+                        // ignore: deprecated_member_use
                         fillColor: Colors.white.withOpacity(0.1),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),

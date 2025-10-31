@@ -9,47 +9,41 @@ final authProvider = StateNotifierProvider<AuthNotifier, Map<String, dynamic>?>(
 class AuthNotifier extends StateNotifier<Map<String, dynamic>?> {
   AuthNotifier() : super(null);
 
-  Future<String> login(String username, String password, {bool remember = false}) async {
-  // Find user by username
+Future<String> login(String username, String password, {bool remember = false}) async {
   final user = await AuthService.getUserByUsername(username);
 
-  if (user == null) {
-    return 'invalid_username';
-  }
+  if (user == null) return 'invalid_username';
+  if ((user['isBanned'] ?? false) == true) return 'banned';
+  if (user['password'] != password) return 'invalid_password';
 
-  // Check if banned
-  if ((user['isBanned'] ?? false) == true) {
-    return 'banned';
-  }
-
-  // Validate password
-  if (user['password'] != password) {
-    return 'invalid_password';
-  }
-
-  // Success
+  //  Login success
   state = user;
 
-  if (remember) {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('saved_username', username);
-    await prefs.setString('saved_password', password);
-  }
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setBool('is_logged_in', true);
+  await prefs.setString('saved_username', username);
+  await prefs.setString('saved_password', password);
 
   return 'success';
 }
 
-  Future<void> logout({bool clearSaved = false}) async {
+
+  Future<void> logout({bool clearSaved = true}) async {
     state = null;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('is_logged_in', false);
     if (clearSaved) {
-      final prefs = await SharedPreferences.getInstance();
       await prefs.remove('saved_username');
       await prefs.remove('saved_password');
     }
   }
 
-  Future<Map<String, dynamic>?> tryAutoLogin() async {
+
+    Future<Map<String, dynamic>?> tryAutoLogin() async {
     final prefs = await SharedPreferences.getInstance();
+    final isLoggedIn = prefs.getBool('is_logged_in') ?? false;
+    if (!isLoggedIn) return null;
+
     final username = prefs.getString('saved_username');
     final password = prefs.getString('saved_password');
     if (username == null || password == null) return null;
@@ -61,6 +55,7 @@ class AuthNotifier extends StateNotifier<Map<String, dynamic>?> {
     state = matched;
     return matched;
   }
+
 
   Future<bool> isUserBannedRemotely() async {
     if (state == null) return false;
