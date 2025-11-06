@@ -128,63 +128,141 @@ Future<void> _handleSaveAndExit() async {
   );
 }
 
-  @override
-  Widget build(BuildContext context) {
-     final barcodeValue = ref.watch(barcodeProvider);
-      if (isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
+ @override
+Widget build(BuildContext context) {
+  final barcodeValue = ref.watch(barcodeProvider);
 
-    if (matchedProduct == null) {
-      return Scaffold(
-        appBar: AppBar(title: const Text("Product Info")),
-        body: Center(child: Text(message)),
-      );
-    }
+  if (isLoading) {
+    return const Scaffold(
+      body: Center(child: CircularProgressIndicator()),
+    );
+  }
 
- return Scaffold(
-   appBar: AppBar(title: const Text('ကုန်ပစ္စည်း အရောင်း',style: TextStyle(
-    color: Colors.white, 
-    fontSize: 16,
-    fontWeight: FontWeight.bold,
-  ),), backgroundColor: Colors.deepPurple),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-          child: ListView(
-            children: [
-              Text(
-                '✅ ${barcodeValue ?? 'NO barcode.'}',
-                style: const TextStyle(fontSize: 11),
-              ),
-            Text("📦 Product: ${matchedProduct!['product_name']}"),
-            Text("🔖 Barcode: ${matchedProduct!['barcode']}"),
-            Text("📦 Quantity: ${matchedProduct!['qty']}"),
-            Text("💰 Buy Price: ${matchedProduct!['buy_price']}"),
-            Text("💵 Sell Price: ${matchedProduct!['sell_price']}"),
-            Text("🏷 Discount: ${matchedProduct!['discount']}"),
-            Text("📝 Remark: ${matchedProduct!['remark']}"),
-            const SizedBox(height: 16),
-            Text(
-              message,
-              style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green),
-            ),
-              const SizedBox(height: 32),
-              ElevatedButton.icon(
-                onPressed:_handleSaveAndExit,
-                icon: const Icon(Icons.save),
-                label: const Text('Save and Exit'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.deepPurple,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                ),
-              )
-            ],
-          ),
-        
+  if (matchedProduct == null) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          "Product Info",
+          style: TextStyle(color: Colors.white),
+        ),
+        backgroundColor: Colors.deepPurple,
+      ),
+      body: Center(
+        child: Text(
+          message,
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
       ),
     );
   }
+
+  return Scaffold(
+    appBar: AppBar(
+      title: const Text(
+        'ကုန်ပစ္စည်း အရောင်း',
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      backgroundColor: Colors.deepPurple,
+      elevation: 0,
+    ),
+
+    body: Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        children: [
+          /// ✅ Barcode Info Banner
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.deepPurple,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              "✅ Scanned: ${barcodeValue ?? 'NO BARCODE'}",
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            ),
+          ),
+
+          const SizedBox(height: 18),
+
+          /// ✅ Product Card
+          Card(
+            elevation: 4,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            child: Padding(
+              padding: const EdgeInsets.all(18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _productInfo("📦 Product", matchedProduct!['product_name']),
+                  _productInfo("🔖 Barcode", matchedProduct!['barcode']),
+                  _productInfo("📦 Quantity", matchedProduct!['qty'].toString()),
+                  _productInfo("💰 Buy Price", matchedProduct!['buy_price'].toString()),
+                  _productInfo("💵 Sell Price", matchedProduct!['sell_price'].toString()),
+                  _productInfo("🏷 Discount", matchedProduct!['discount'].toString()),
+                  _productInfo("📝 Remark", matchedProduct!['remark'] ?? "-"),
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          /// ✅ Stock Status
+          Text(
+            message,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 15,
+              color: matchedProduct!['qty'] > 0 ? Colors.green : Colors.red,
+            ),
+          ),
+
+          const Spacer(),
+
+          /// ✅ Save Button
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _handleSaveAndExit,
+              icon: const Icon(Icons.save),
+              label: const Text(
+                "Save and Exit",
+                style: TextStyle(fontSize: 16),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.deepPurple,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+/// ✅ Product label + value widget
+Widget _productInfo(String title, String value) {
+  return Padding(
+    padding: const EdgeInsets.symmetric(vertical: 6),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+        Text(value, style: const TextStyle(fontSize: 15)),
+      ],
+    ),
+  );
+}
+
 }
