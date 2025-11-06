@@ -10,26 +10,49 @@ class SellHistoryScreen extends ConsumerStatefulWidget {
 
 class _SellHistoryScreenState extends ConsumerState<SellHistoryScreen> {
   String inputValue = '';
+  String? selectedExtraKey; // ✅ store the selected extraKey
+  List<String> historyData = []; // ✅ store entered history to show in list
 
-  void onKeyPressed(String value) {
+  void onKeyPressed(String value, ) {
     setState(() {
       if (value == 'C') {
         inputValue = '';
+        selectedExtraKey = null;
       } else if (value == '<') {
         if (inputValue.isNotEmpty) {
           inputValue = inputValue.substring(0, inputValue.length - 1);
         }
       } else {
-        inputValue += value;
+          inputValue += value;
+          debugPrint('inputValue=> $inputValue');
       }
     });
   }
 
   void onEnterPressed() {
-    debugPrint("Entered value: $inputValue");
-    // TODO: Add DB logic here
+    if (inputValue.isEmpty) {
+      // ❌ Alert when trying to enter empty
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text("Warning"),
+          content: const Text("No entered value."),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("OK"),
+            )
+          ],
+        ),
+      );
+      return;
+    }
+
+    // ✅ Save to history
     setState(() {
-      inputValue = ''; // Clear input after enter pressed
+      historyData.add(inputValue);
+      inputValue = '';
+      selectedExtraKey = null;
     });
   }
 
@@ -56,6 +79,7 @@ class _SellHistoryScreenState extends ConsumerState<SellHistoryScreen> {
       'အပူးပါ',
     ];
 
+
     return Scaffold(
       appBar: AppBar(
         title: const Text(
@@ -76,19 +100,21 @@ class _SellHistoryScreenState extends ConsumerState<SellHistoryScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  const Text(
+                    "Sell History",
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 10),
+
                   Expanded(
                     child: ListView.builder(
-                      itemCount: 20,
+                      itemCount: historyData.length,
                       itemBuilder: (context, index) {
                         return Card(
                           elevation: 2,
                           margin: const EdgeInsets.symmetric(vertical: 4),
                           child: ListTile(
-                            title: Text('Item ${index + 1}'),
-                            subtitle:
-                                Text('Qty: ${index + 2} | Price: \$${(index + 1) * 5}'),
-                            trailing:
-                                Text('\$${(index + 1) * (index + 2) * 5}'),
+                            title: Text(historyData[index]),
                           ),
                         );
                       },
@@ -105,10 +131,9 @@ class _SellHistoryScreenState extends ConsumerState<SellHistoryScreen> {
             child: SafeArea(
               child: Container(
                 padding: const EdgeInsets.all(12),
-                color: Colors.white,
                 child: Column(
                   children: [
-                    // Display + ENTER Button Row
+                    // ✅ Display + ENTER Button Row
                     Row(
                       children: [
                         Expanded(
@@ -132,36 +157,32 @@ class _SellHistoryScreenState extends ConsumerState<SellHistoryScreen> {
                             ),
                           ),
                         ),
-
                         const SizedBox(width: 8),
 
-                        // ENTER Button added here
                         ElevatedButton(
                           onPressed: onEnterPressed,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.green,
-                            minimumSize: const Size(80, 60),  // Button size
+                            minimumSize: const Size(80, 60),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10),
                             ),
                           ),
-                          child: const Text(
-                            "ENTER",
-                            style: TextStyle(fontSize: 18, color: Colors.white),
-                          ),
-                        ),
+                          child: const Text("ENTER", style: TextStyle(color: Colors.white)),
+                        )
                       ],
                     ),
-
                     const SizedBox(height: 8),
 
+                    // ✅ KEYPAD Grid
                     Expanded(
                       child: GridView.count(
                         crossAxisCount: 3,
                         crossAxisSpacing: 10,
                         mainAxisSpacing: 10,
-                        childAspectRatio: 1.3,
+                        childAspectRatio: 1.25,
                         children: [
+                          // ✅ Numeric keys
                           for (var key in defaultKeys)
                             ElevatedButton(
                               onPressed: () => onKeyPressed(key),
@@ -171,20 +192,18 @@ class _SellHistoryScreenState extends ConsumerState<SellHistoryScreen> {
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                               ),
-                              child: Text(
-                                key,
-                                style: const TextStyle(
-                                  fontSize: 24,
-                                  color: Colors.white,
-                                ),
-                              ),
+                              child: Text(key,
+                                  style: const TextStyle(
+                                      fontSize: 22, color: Colors.white)),
                             ),
 
+                          // ✅ Myanmar keys (only ONE selection allowed)
                           for (var myKey in extraKeys)
                             ElevatedButton(
                               onPressed: () => onKeyPressed(myKey),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.orange,
+                                backgroundColor:
+                                    selectedExtraKey == myKey ? Colors.red : Colors.orange,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
@@ -193,9 +212,7 @@ class _SellHistoryScreenState extends ConsumerState<SellHistoryScreen> {
                                 myKey,
                                 textAlign: TextAlign.center,
                                 style: const TextStyle(
-                                  fontSize: 18,
-                                  color: Colors.white,
-                                ),
+                                    fontSize: 16, color: Colors.white),
                               ),
                             ),
                         ],
