@@ -13,21 +13,67 @@ class _SellHistoryScreenState extends ConsumerState<SellHistoryScreen> {
   String? selectedExtraKey; // ✅ store the selected extraKey
   List<String> historyData = []; // ✅ store entered history to show in list
 
-  void onKeyPressed(String value, ) {
-    setState(() {
-      if (value == 'C') {
-        inputValue = '';
-        selectedExtraKey = null;
-      } else if (value == '<') {
-        if (inputValue.isNotEmpty) {
+      final List<String> defaultKeys = [
+      '7', '8', '9',
+      '4', '5', '6',
+      '1', '2', '3',
+      'C', '0', '<',
+    ];
+
+    final List<String> extraKeys = [
+      'အပူး',
+      'အခွေ',
+      'ပါဝါ',
+      'နက္ခတ်',
+      'ညီကို',
+      'ဆယ်ပြည့်',
+      'ဆယ်ပွင့်',
+      'မမ ရိုးရိုး',
+      'မမ အပူး',
+      'စုံစုံ ရိုးရိုး',
+      'အပူးပါ',
+    ];
+
+
+void onKeyPressed(String value) {
+  setState(() {
+    if (value == 'C') {
+      // Clear everything
+      inputValue = '';
+      selectedExtraKey = null;
+    } else if (value == '<') {
+      if (inputValue.isNotEmpty) {
+        // Remove last char or extraKey if it was selected
+        if (selectedExtraKey != null &&
+            inputValue.endsWith(selectedExtraKey!)) {
+          inputValue = inputValue
+              .substring(0, inputValue.length - selectedExtraKey!.length);
+          selectedExtraKey = null;
+        } else {
           inputValue = inputValue.substring(0, inputValue.length - 1);
         }
-      } else {
-          inputValue += value;
-          debugPrint('inputValue=> $inputValue');
       }
-    });
-  }
+    } else if (extraKeys.contains(value)) {
+      // Allow only one extraKey
+      if (selectedExtraKey == null) {
+        selectedExtraKey = value;
+        inputValue += value;
+      } else {
+        debugPrint('ExtraKey already selected');
+      }
+    } else {
+      // Number input
+      if (selectedExtraKey == null) {
+        inputValue += value;
+      } else {
+        debugPrint('Cannot add numbers after extraKey');
+      }
+    }
+
+    debugPrint('inputValue => $inputValue, selectedExtraKey => $selectedExtraKey');
+  });
+}
+
 
   void onEnterPressed() {
     if (inputValue.isEmpty) {
@@ -58,26 +104,6 @@ class _SellHistoryScreenState extends ConsumerState<SellHistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final List<String> defaultKeys = [
-      '7', '8', '9',
-      '4', '5', '6',
-      '1', '2', '3',
-      'C', '0', '<',
-    ];
-
-    final List<String> extraKeys = [
-      'အပူး',
-      'အခွေ',
-      'ပါဝါ',
-      'နက္ခတ်',
-      'ညီကို',
-      'ဆယ်ပြည့်',
-      'ဆယ်ပွင့်',
-      'မမ ရိုးရိုး',
-      'မမ အပူး',
-      'စုံစုံ ရိုးရိုး',
-      'အပူးပါ',
-    ];
 
 
     return Scaffold(
