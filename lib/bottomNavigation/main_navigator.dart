@@ -2,25 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:my_shop/screens/home/home_screen.dart';
 import 'package:my_shop/screens/inventory/inventory_screen.dart';
 import 'package:my_shop/screens/profits/profit_screen.dart';
-import 'package:my_shop/screens/scanner/mobile_scanner_screen.dart';
 import 'package:my_shop/screens/setting/setting_screen.dart';
 
 class MainNavigator extends StatefulWidget {
   const MainNavigator({super.key});
 
   @override
-  // ignore: library_private_types_in_public_api
   _MainNavigatorState createState() => _MainNavigatorState();
 }
 
 class _MainNavigatorState extends State<MainNavigator> {
   int _selectedIndex = 0;
 
+  // Make sure the number of screens matches the bottom navigation items
   final List<Widget> widgetOptions = const [
     HomeScreen(),
     InventoryScreen(),
-    // Center(child: Text('Scan', style: TextStyle(fontSize: 24))),
-    MobileScannerScreen(),
     ProfitScreen(),
     SettingScreen(),
   ];
@@ -34,14 +31,16 @@ class _MainNavigatorState extends State<MainNavigator> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: widgetOptions.elementAt(_selectedIndex),
+      body: widgetOptions[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
         showSelectedLabels: true,
         showUnselectedLabels: true,
-        type: BottomNavigationBarType.fixed,
         selectedItemColor: Colors.amber,
         unselectedItemColor: Colors.blueGrey,
-        items: const <BottomNavigationBarItem>[
+        currentIndex: _selectedIndex,
+        onTap: _onItemTapped,
+        items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
             label: 'Home',
@@ -49,10 +48,6 @@ class _MainNavigatorState extends State<MainNavigator> {
           BottomNavigationBarItem(
             icon: Icon(Icons.inventory),
             label: 'Inventory',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.qr_code_scanner),
-            label: 'Scan',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.attach_money),
@@ -63,8 +58,6 @@ class _MainNavigatorState extends State<MainNavigator> {
             label: 'Settings',
           ),
         ],
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
       ),
     );
   }

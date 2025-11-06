@@ -1,9 +1,4 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'package:my_shop/db/db_helper.dart';
-import 'package:my_shop/providers/auth_provider.dart';
-import 'package:my_shop/screens/auth/login_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class SellHistoryScreen extends ConsumerStatefulWidget {
@@ -14,514 +9,205 @@ class SellHistoryScreen extends ConsumerStatefulWidget {
 }
 
 class _SellHistoryScreenState extends ConsumerState<SellHistoryScreen> {
-  List<Map<String, dynamic>> products = [];
-  bool isLoading = true;
-  double givenMoney = 0.0;
-  double changeMoney = 0.0;
-  final TextEditingController givenMoneyController = TextEditingController();
+  String inputValue = '';
 
-
-  @override
-  void initState() {
-    super.initState();
-    _loadProducts();
-    _checkBannedStatus();
-
-  }
-
-  Future<void> _checkBannedStatus() async {
-    // If current user is banned remotely, log them out and redirect to login
-    final notifier = ref.read(authProvider.notifier);
-    final isBanned = await notifier.isUserBannedRemotely();
-    if (isBanned && mounted) {
-      await notifier.logout(clearSaved: true);
-      if (mounted) {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (_) => const LoginScreen()),
-          (route) => false,
-        );
-      }
-    }
-  }
-  
-  Future<void> _loadProducts() async {
-    final rawData = await DBHelper.getSales();
-
-    // Group by barcode and product_name and sum quantity_sold
-    final Map<String, Map<String, dynamic>> grouped = {};
-
-    for (var item in rawData) {
-      final key = '${item['barcode']}_${item['product_name']}';
-
-      // Ensure quantity_sold is treated as int
-      final int qty = (item['quantity_sold'] is int)
-          ? item['quantity_sold']
-          : int.tryParse(item['quantity_sold'].toString()) ?? 0;
-
-      if (grouped.containsKey(key)) {
-        grouped[key]!['quantity_sold'] += qty;
-      } else {
-        final Map<String, dynamic> newItem = Map<String, dynamic>.from(item);
-        newItem['quantity_sold'] = qty;
-        grouped[key] = newItem;
-      }
-    }
-
+  void onKeyPressed(String value) {
     setState(() {
-      products = grouped.values.toList();
-      isLoading = false;
+      if (value == 'C') {
+        inputValue = '';
+      } else if (value == '<') {
+        if (inputValue.isNotEmpty) {
+          inputValue = inputValue.substring(0, inputValue.length - 1);
+        }
+      } else {
+        inputValue += value;
+      }
     });
-    // ✅ Pretty-print in console
-    final prettyProducts = const JsonEncoder.withIndent('  ').convert(products);
-    debugPrint('Products =>\n$prettyProducts');
   }
 
-  Future<bool> sendReceiptToTelegram() async {
-  const String telegramBotToken = '7653380321:AAEKzt7QotYRqB36rKBaYsID3pIKFhGizGU';
-  const String chatId = '5613994162';
-
-  if (telegramBotToken.isEmpty || chatId.isEmpty) {
-    debugPrint('❌ Telegram bot token or chat ID is not set.');
-    return false;
-  }
-
-  final StringBuffer text = StringBuffer();
-  text.writeln('📩 New Sales Receipt:');
-  text.writeln('Date: ${formatDate(products.isNotEmpty ? products.first['sale_date'] : null)}');
-  text.writeln('---------------------------------');
-  for (var product in products) {
-    final int qty = (product['quantity_sold'] is int)
-        ? product['quantity_sold']
-        : int.tryParse(product['quantity_sold'].toString()) ?? 0;
-    final double unitPrice = (product['sell_price'] is double)
-        ? product['sell_price']
-        : double.tryParse(product['sell_price'].toString()) ?? 0.0;
-    final double subTotal = qty * unitPrice;
-    text.writeln(
-        '- ${product['product_name']} | Qty: $qty | Price: ${formatPrice(unitPrice)} | Subtotal: ${formatPrice(subTotal)}');
-  }
-  text.writeln('---------------------------------');
-  text.writeln('TOTAL: ${formatPrice(getTotalPrice())}');
-  text.writeln('Buyer Money: ${formatPrice(givenMoney)}');
-  text.writeln('Change: ${formatPrice(changeMoney)}');
-
-
-  final Uri url = Uri.parse('https://api.telegram.org/bot$telegramBotToken/sendMessage');
-
-  try {
-    final response = await http.post(
-      url,
-      headers: {'Content-Type': 'application/json'},
-      body: '{"chat_id": "$chatId", "text": "${text.toString()}", "parse_mode": "Markdown"}',
-    );
-
-    if (response.statusCode == 200) {
-      debugPrint('✅ Receipt sent to Telegram successfully!');
-      return true;
-    } else {
-      debugPrint('❌ Failed to send receipt. Status: ${response.statusCode}');
-      debugPrint('Response body: ${response.body}');
-      return false;
-    }
-  } catch (e) {
-    debugPrint('❌ Error sending receipt to Telegram: $e');
-    return false;
-  }
-}
-
-  // Calculate total price for all products
-  double getTotalPrice() {
-    double total = 0;
-    for (var product in products) {
-      final int qty = (product['quantity_sold'] is int)
-          ? product['quantity_sold']
-          : int.tryParse(product['quantity_sold'].toString()) ?? 0;
-      final double price = (product['sell_price'] is double)
-          ? product['sell_price']
-          : double.tryParse(product['sell_price'].toString()) ?? 0.0;
-      total += qty * price;
-    }
-    return total;
-  }
-
-  // Format date to human readable
-  String formatDate(String? dateString) {
-    if (dateString == null) return 'Unknown Date';
-    try {
-      final date = DateTime.parse(dateString);
-      return '${_getMonthName(date.month)} ${date.day}, ${date.year} at ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
-    } catch (e) {
-      return dateString;
-    }
-  }
-  String formatPrice(double value) {
-    if (value % 1 == 0) {
-      // No decimals → show as integer
-      return value.toInt().toString();
-    } else {
-      // Keep decimals if necessary
-      return value.toString();
-    }
-  }
-
-  String _getMonthName(int month) {
-    const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-    ];
-    return months[month - 1];
+  void onEnterPressed() {
+    debugPrint("Entered value: $inputValue");
+    // TODO: Add DB logic here
+    setState(() {
+      inputValue = ''; // Clear input after enter pressed
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final totalPrice = getTotalPrice();
+    final List<String> defaultKeys = [
+      '7', '8', '9',
+      '4', '5', '6',
+      '1', '2', '3',
+      'C', '0', '<',
+    ];
+
+    final List<String> extraKeys = [
+      'အပူး',
+      'အခွေ',
+      'ပါဝါ',
+      'နက္ခတ်',
+      'ညီကို',
+      'ဆယ်ပြည့်',
+      'ဆယ်ပွင့်',
+      'မမ ရိုးရိုး',
+      'မမ အပူး',
+      'စုံစုံ ရိုးရိုး',
+      'အပူးပါ',
+    ];
 
     return Scaffold(
       appBar: AppBar(
         title: const Text(
           'Sales Receipt',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: Colors.white),
         ),
         backgroundColor: Colors.deepPurple,
-        foregroundColor: Colors.white,
       ),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : products.isEmpty
-              ? const Center(child: Text('No sales records found.'))
-              : Column(
+      body: Column(
+        children: [
+          // ===== 1. Sell history section =====
+          Expanded(
+            flex: 1,
+            child: Container(
+              color: Colors.grey[100],
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: 20,
+                      itemBuilder: (context, index) {
+                        return Card(
+                          elevation: 2,
+                          margin: const EdgeInsets.symmetric(vertical: 4),
+                          child: ListTile(
+                            title: Text('Item ${index + 1}'),
+                            subtitle:
+                                Text('Qty: ${index + 2} | Price: \$${(index + 1) * 5}'),
+                            trailing:
+                                Text('\$${(index + 1) * (index + 2) * 5}'),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // ===== 2. Calculator section =====
+          Expanded(
+            flex: 2,
+            child: SafeArea(
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                color: Colors.white,
+                child: Column(
                   children: [
-                    // Receipt Header
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(16),
-                      color: Colors.deepPurple.withOpacity(0.1),
-                      child: Column(
-                        children: [
-                          Text(
-                            'SALES RECEIPT',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.deepPurple[800],
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            formatDate(products.isNotEmpty ? products.first['sale_date'] : null),
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    
-                    // Column Headers
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      color: Colors.grey[200],
-                      child: const Row(
-                        children: [
-                          Expanded(
-                            flex: 3,
-                            child: Text(
-                              'Name',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ),
-                          Expanded(
-                            flex: 1,
-                            child: Text(
-                              'Qty',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ),
-                          Expanded(
-                            flex: 2,
-                            child: Text(
-                              'Price',
-                              textAlign: TextAlign.right,
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ),
-                          Expanded(
-                            flex: 2,
-                            child: Text(
-                              'SubTotal',
-                              textAlign: TextAlign.right,
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    
-                    // Products List
-                    Expanded(
-                      child: ListView.builder(
-                        itemCount: products.length,
-                        itemBuilder: (context, index) {
-                          final product = products[index];
-                          final int qty = (product['quantity_sold'] is int)
-                              ? product['quantity_sold']
-                              : int.tryParse(product['quantity_sold'].toString()) ?? 0;
-                          final double unitPrice = (product['sell_price'] is double)
-                              ? product['sell_price']
-                              : double.tryParse(product['sell_price'].toString()) ?? 0.0;
-                          final double subTotal = qty * unitPrice;
-                          final qtyController = TextEditingController(
-                            text: product['quantity_sold'].toString(),
-                          );
-
-                          return Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                            decoration: BoxDecoration(
-                              border: Border(
-                                bottom: BorderSide(
-                                  color: Colors.grey[300]!,
-                                  width: 1,
-                                ),
-                              ),
-                            ),
-                            child: Row(
-                              children: [                            
-                                // Product Name
-                                Expanded(
-                                  flex: 3,
-                                  child: Text(
-                                    product['product_name'] ?? 'Unnamed Product',
-                                    style: const TextStyle(fontSize: 14),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                                
-                        // Editable Quantity
-                              Expanded(
-                                flex: 1,
-                                child: Container(
-                                  // ignore: deprecated_member_use
-                                  color: Colors.yellow.withOpacity(0.2), // background color for editable field
-                                  child: TextField(
-                                    controller: qtyController,
-                                    keyboardType: TextInputType.number,
-                                    textAlign: TextAlign.center,
-                                    decoration: const InputDecoration(
-                                      border: InputBorder.none,
-                                    ),
-                                    onChanged: (value) async {
-                                      final newQty = int.tryParse(value) ?? 1;
-                                      if (newQty <= 0) return;
-
-                                      final oldQty = product['quantity_sold'] ?? 1;
-
-                                      setState(() {
-                                        product['quantity_sold'] = newQty;
-                                        changeMoney = givenMoney - getTotalPrice();
-                                      });
-
-                                      // Update stock in DB
-                                      final db = await DBHelper.database;
-                                      final List<Map<String, dynamic>> productFromDB = await db.query(
-                                        'products',
-                                        where: 'id = ?',
-                                        whereArgs: [product['product_id']],
-                                      );
-
-                                      if (productFromDB.isNotEmpty) {
-                                        int currentQty = productFromDB.first['qty'];
-                                        num diff = newQty - oldQty; // difference
-                                        num newAvailableQty = currentQty - diff;
-                                        if (newAvailableQty < 0) newAvailableQty = 0;
-
-                                        await db.update(
-                                          'products',
-                                          {'qty': newAvailableQty},
-                                          where: 'id = ?',
-                                          whereArgs: [product['product_id']],
-                                        );
-                                      }
-                                    },
-
-                                  ),
-                                ),
-                              ),
-                                                
-                                // Unit Price
-                                Expanded(
-                                  flex: 2,
-                                  child: Text(
-                                    formatPrice(unitPrice),
-                                    style: const TextStyle(fontSize: 14),
-                                    textAlign: TextAlign.right,
-                                  ),
-                                ),
-                                
-                                // Sub Total
-                                Expanded(
-                                  flex: 2,
-                                  child: Text(
-                                    formatPrice(subTotal),
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                    textAlign: TextAlign.right,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                    
-                Container(
-                    padding: const EdgeInsets.all(16),
-                    // ignore: deprecated_member_use
-                    color: Colors.deepPurple.withOpacity(0.05),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                    // Display + ENTER Button Row
+                    Row(
                       children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text(
-                              'TOTAL:',
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                            ),
-                            Text(
-                              formatPrice(totalPrice),
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.deepPurple[800],
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        const SizedBox(height: 12),
-
-                        // 💰 Input for Buyer Money
-                        TextField(
-                          keyboardType: TextInputType.number,
-                          decoration: InputDecoration(
-                            labelText: 'Buyer Money',
-                            hintText: 'Enter amount buyer gives (e.g. 20000)',
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                            prefixIcon: const Icon(Icons.payments),
-                          ),
-                          onChanged: (value) {
-                            final entered = double.tryParse(value) ?? 0.0;
-                            setState(() {
-                              givenMoney = entered;
-                              changeMoney = givenMoney - totalPrice;
-                            });
-                          },
-                        ),
-
-                        const SizedBox(height: 12),
-
-                        // 🧮 Show Change
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text(
-                              'Change:',
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                            ),
-                            Text(
-                              changeMoney.isNegative
-                                  ? 'Insufficient Money'
-                                  : formatPrice(changeMoney),
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: changeMoney.isNegative ? Colors.red : Colors.green[800],
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: (givenMoney <= 0 || givenMoney < totalPrice) 
-                                ? Colors.grey 
-                                : Colors.deepPurple,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
+                        Expanded(
+                          child: Container(
+                            alignment: Alignment.centerRight,
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[200],
                               borderRadius: BorderRadius.circular(8),
                             ),
-                          ),
-                          onPressed: (givenMoney <= 0 || givenMoney < totalPrice)
-                              ? null // disable button if money is insufficient
-                              : () async {
-                                  if (products.isEmpty) return;
-
-                                  setState(() => isLoading = true);
-
-                                 // Insert into sales_summary
-                                  await DBHelper.insertSalesSummaryProducts(
-                                    products: products,
-                                    totalSaleAmount: getTotalPrice(),
-                                  );
-
-
-                                  final success = await sendReceiptToTelegram();
-
-                                  if (success) {
-                                    await DBHelper.deleteSales();
-                                    await _loadProducts();
-
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('Receipt sent successfully!')),
-                                    );
-                                  } else {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('Failed to send receipt. Please try again.')),
-                                    );
-                                  }
-
-                                  setState(() => isLoading = false);
-                                },
-                          child: const Text(
-                            'Submit',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              reverse: true,
+                              child: Text(
+                                inputValue,
+                                style: const TextStyle(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ),
+                          ),
+                        ),
+
+                        const SizedBox(width: 8),
+
+                        // ENTER Button added here
+                        ElevatedButton(
+                          onPressed: onEnterPressed,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            minimumSize: const Size(80, 60),  // Button size
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          child: const Text(
+                            "ENTER",
+                            style: TextStyle(fontSize: 18, color: Colors.white),
                           ),
                         ),
                       ],
                     ),
-                  ),
 
+                    const SizedBox(height: 8),
+
+                    Expanded(
+                      child: GridView.count(
+                        crossAxisCount: 3,
+                        crossAxisSpacing: 10,
+                        mainAxisSpacing: 10,
+                        childAspectRatio: 1.3,
+                        children: [
+                          for (var key in defaultKeys)
+                            ElevatedButton(
+                              onPressed: () => onKeyPressed(key),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.deepPurple,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: Text(
+                                key,
+                                style: const TextStyle(
+                                  fontSize: 24,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+
+                          for (var myKey in extraKeys)
+                            ElevatedButton(
+                              onPressed: () => onKeyPressed(myKey),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.orange,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: Text(
+                                myKey,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:my_shop/providers/auth_provider.dart';
-import 'package:my_shop/screens/auth/login_screen.dart';
 import 'package:my_shop/screens/history/sell_history_screen.dart';
 import 'package:my_shop/screens/products/product_list_screen.dart';
 import 'package:my_shop/screens/remain/remain_product_list_screen.dart';
@@ -15,28 +13,6 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
-  @override
-  void initState() {
-    super.initState();
-    _checkBannedStatus();
-  }
-
-  Future<void> _checkBannedStatus() async {
-    // If current user is banned remotely, log them out and redirect to login
-    final notifier = ref.read(authProvider.notifier);
-    final isBanned = await notifier.isUserBannedRemotely();
-    if (isBanned && mounted) {
-      await notifier.logout(clearSaved: true);
-      if (mounted) {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (_) => const LoginScreen()),
-          (route) => false,
-        );
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -63,12 +39,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             label: 'Products',
             subtitle: 'View all products',
             icon: Icons.receipt_long,
-            page:  ProductListScreen(),
+            page: ProductListScreen(),
           ),
           NavigateCard(
             label: 'Remain',
             subtitle: 'View and edit your products',
-            icon: Icons.person,
+            icon: Icons.inventory,
             page: RemainProductListScreen(),
           ),
           NavigateCard(
