@@ -34,40 +34,48 @@ class _SellHistoryScreenState extends ConsumerState<SellHistoryScreen> {
       'အပူးပါ',
     ];
 
-
 void onKeyPressed(String value) {
   setState(() {
     if (value == 'C') {
-      // Clear everything
       inputValue = '';
       selectedExtraKey = null;
-    } else if (value == '<') {
+    } 
+    else if (value == '<') {
       if (inputValue.isNotEmpty) {
-        // Remove last char or extraKey if it was selected
-        if (selectedExtraKey != null &&
-            inputValue.endsWith(selectedExtraKey!)) {
-          inputValue = inputValue
-              .substring(0, inputValue.length - selectedExtraKey!.length);
+        if (selectedExtraKey != null && inputValue.endsWith(selectedExtraKey!)) {
+          inputValue = inputValue.substring(0, inputValue.length - selectedExtraKey!.length);
           selectedExtraKey = null;
         } else {
           inputValue = inputValue.substring(0, inputValue.length - 1);
         }
       }
-    } else if (extraKeys.contains(value)) {
-      // Allow only one extraKey
-      if (selectedExtraKey == null) {
-        selectedExtraKey = value;
-        inputValue += value;
+    } 
+
+    // ✅ ExtraKey pressed
+    else if (extraKeys.contains(value)) {
+      if (selectedExtraKey != null) return; // only one extraKey allowed
+
+      if (value == 'အခွေ') {
+        // must have number before
+        if (!RegExp(r'\d$').hasMatch(inputValue)) {
+          debugPrint('❌ အခွေ must have number before');
+          return;
+        }
       } else {
-        debugPrint('ExtraKey already selected');
+        // other extraKeys MUST NOT have number before
+        if (RegExp(r'\d$').hasMatch(inputValue)) {
+          debugPrint('❌ This extraKey cannot have numbers before');
+          return;
+        }
       }
-    } else {
-      // Number input
-      if (selectedExtraKey == null) {
-        inputValue += value;
-      } else {
-        debugPrint('Cannot add numbers after extraKey');
-      }
+
+      selectedExtraKey = value;
+      inputValue += value;
+    } 
+
+    // ✅ Number pressed
+    else {
+      inputValue += value;
     }
 
     debugPrint('inputValue => $inputValue, selectedExtraKey => $selectedExtraKey');
@@ -136,11 +144,47 @@ void onKeyPressed(String value) {
                     child: ListView.builder(
                       itemCount: historyData.length,
                       itemBuilder: (context, index) {
+                        final item = historyData[index];
+
                         return Card(
                           elevation: 2,
                           margin: const EdgeInsets.symmetric(vertical: 4),
                           child: ListTile(
-                            title: Text(historyData[index]),
+                            title: Text(item),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                // Edit button
+                                IconButton(
+                                  icon: const Icon(Icons.edit, color: Colors.blue),
+                                  onPressed: () {
+                                      setState(() {
+                                        inputValue = item;
+                    
+                                        // Try to restore selectedExtraKey if exists
+                                        final found = extraKeys.firstWhere(
+                                          (ek) => inputValue.contains(ek),
+                                          orElse: () => '',
+                                        );
+                                        selectedExtraKey = found.isNotEmpty ? found : null;
+                    
+                                        // Remove from history for editing
+                                        historyData.removeAt(index);
+                                      });
+                                    },
+                                ),
+
+                                // Delete button
+                                IconButton(
+                                  icon: const Icon(Icons.delete, color: Colors.red),
+                                  onPressed: () {
+                                    setState(() {
+                                      historyData.removeAt(index);
+                                    });
+                                  },
+                                ),
+                              ],
+                            ),
                           ),
                         );
                       },
