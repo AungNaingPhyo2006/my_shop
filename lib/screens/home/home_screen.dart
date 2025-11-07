@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:my_shop/screens/history/sell_history_screen.dart';
 import 'package:my_shop/screens/products/product_list_screen.dart';
 import 'package:my_shop/screens/remain/remain_product_list_screen.dart';
-import 'package:my_shop/widgets/navigate_card.dart';
+import 'package:my_shop/widgets/grib_nav_button.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -27,33 +27,38 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
         backgroundColor: Colors.deepPurple,
       ),
-      body: ListView(
-        children: const [
-          NavigateCard(
-            label: 'Sales',
-            subtitle: 'View sales history',
-            icon: Icons.point_of_sale,
-            page: SellHistoryScreen(),
-          ),
-          NavigateCard(
-            label: 'Products',
-            subtitle: 'View all products',
-            icon: Icons.receipt_long,
-            page: ProductListScreen(),
-          ),
-          NavigateCard(
-            label: 'Remain',
-            subtitle: 'View and edit your products',
-            icon: Icons.inventory,
-            page: RemainProductListScreen(),
-          ),
-          NavigateCard(
-            label: 'Settings',
-            subtitle: 'Configure the app settings',
-            icon: Icons.settings,
-            page: ProductListScreen(),
-          ),
-        ],
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: GridView.count(
+          crossAxisCount: 4,                 // ✅ 4 buttons per row
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          children: const [
+            GridNavButton(
+              label: "Sales",
+              icon: Icons.point_of_sale,
+              page: SellHistoryScreen(),
+            ),
+            GridNavButton(
+              label: "Products",
+              icon: Icons.receipt_long,
+              page: ProductListScreen(),
+            ),
+            GridNavButton(
+              label: "Remain",
+              icon: Icons.inventory,
+              page: RemainProductListScreen(),
+            ),
+            GridNavButton(
+              label: "Settings",
+              icon: Icons.settings,
+              page: ProductListScreen(),
+            ),
+            
+          ],
+        ),
       ),
     );
   }
