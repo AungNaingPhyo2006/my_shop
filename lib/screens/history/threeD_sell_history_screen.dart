@@ -2,161 +2,96 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 
-class SellHistoryScreen extends ConsumerStatefulWidget {
-  const SellHistoryScreen({super.key});
+class ThreeDSellHistoryScreen extends ConsumerStatefulWidget {
+  const ThreeDSellHistoryScreen({super.key});
 
   @override
-  ConsumerState<SellHistoryScreen> createState() => _SellHistoryScreenState();
+  ConsumerState<ThreeDSellHistoryScreen> createState() => _SellHistoryScreenState();
 }
 
-class _SellHistoryScreenState extends ConsumerState<SellHistoryScreen> {
+class _SellHistoryScreenState extends ConsumerState<ThreeDSellHistoryScreen> {
   bool isSending = false;
   String inputValue = '';
   String? selectedExtraKey; // ✅ store the selected extraKey
   List<Map<String, String>> historyData = []; // ✅ store entered history to show in list
+  bool isBlockedTime() {
+  final now = DateTime.now();
+  final currentMinutes = now.hour * 60 + now.minute;
 
-  Map<String, dynamic> processInput(String input) {
-  // ===== datasets =====
-  final mainData = List.generate(100, (i) => i.toString().padLeft(2, '0'));
-  final apuu = ["00","11","22","33","44","55","66","77","88","99"];
-  final parWar = ["05","50","16","61","27","72","38","83","49","94"];
-  final nakkhat = ["07","70","18","81","24","42","35","53","69","96"];
-  final nyiko = ["01","12","23","34","45","56","67","78","89","90","09","98","87","76","65","54","43","32","21","01"];
-  final salPyi = ["10","20","30","40","50","60","70","80","90","55"];
-  final salPwint = ["00","55","19","28","37","46"];
-  final maMaYoyo = mainData.where((e) => e.contains(RegExp(r'[13579]'))).toList();
-  final maMaApu = ["11","33","55","77","99"];
-  final sonSonYoyo = mainData.where((e) => e.contains(RegExp(r'[02468]'))).toList();
-  final sonSonApu = ["00","22","44","66","88"];
+  const start = 15 * 60 + 58; // 03:58 PM → minutes
+  const end   = 16 * 60 + 1;  // 04:01 PM → minutes
+  return currentMinutes >= start && currentMinutes <= end;
+}
 
   // ===== Split category & number =====
-  final regex = RegExp(r'(.*?)(\d+)$');
-  final match = regex.firstMatch(input);
-
-  if (match == null) return {"detail": "Invalid", "result": 0};
-
-  final key = match.group(1)!;
-  final amount = int.parse(match.group(2)!);
-
-  List<String> digitList = [];
-
-  if (key.isEmpty) {
-    return {"detail": "No category", "result": 0};
-  }
-
-  // ===== If numeric digits exist before category (e.g 579အခွေ200) =====
-  final digitMatch = RegExp(r'\d+').firstMatch(key);
-  if (digitMatch != null) {
-    final digits = digitMatch.group(0)!.split('');
-    Set<String> pairs = {};
-
-    for (int i = 0; i < digits.length; i++) {
-      for (int j = 0; j < digits.length; j++) {
-        if (i != j) {
-          final candidate = digits[i] + digits[j];
-          if (mainData.contains(candidate)) {
-            pairs.add(candidate);
-          }
-        }
-      }
-    }
-    digitList = pairs.toList();
-  }
-
-  // ===== If only category exists (e.g အပူး200) =====
-  if (digitList.isEmpty) {
-    switch (key) {
-      case "အပူး": digitList = apuu; break;
-      case "ပါဝါ": digitList = parWar; break;
-      case "နက္ခတ်": digitList = nakkhat; break;
-      case "ညီကို": digitList = nyiko; break;
-      case "ဆယ်ပြည့်": digitList = salPyi; break;
-      case "ဆယ်ပွင့်": digitList = salPwint; break;
-      case "မမ ရိုးရိုး": digitList = maMaYoyo; break;
-      case "မမ အပူး": digitList = maMaApu; break;
-      case "စုံစုံ ရိုးရိုး": digitList = sonSonYoyo; break;
-      case "စုံစုံ အပူး": digitList = sonSonApu; break;
-    }
-  }
-
-  int total = digitList.length * amount;
-
-  return {
-    "detail": "${digitList.length} × $amount = $total",
-    "result": total
-  };
-}
 
   final List<String> defaultKeys = [
       '7', '8', '9',
       '4', '5', '6',
       '1', '2', '3',
-      'C', '0', '<',
+      'ရှင်း', '0', 'ဖျက်',
+       '@', 'R', '=',
     ];
 
-  final List<String> extraKeys = [
-      'အပူး',
-      'အခွေ',
-      'ပါဝါ',
-      'နက္ခတ်',
-      'ညီကို',
-      'ဆယ်ပြည့်',
-      'ဆယ်ပွင့်',
-      'မမ ရိုးရိုး',
-      'မမ အပူး',
-      'စုံစုံ ရိုးရိုး',
-      'စုံစုံ အပူး',
-    ];
+  String convertDisplay(String input) {
+    input = input.replaceAll(" ", "");
+    List<String> parts = input.split("@");
 
-  void onKeyPressed(String value) {
-  setState(() {
-    if (value == 'C') {
-      inputValue = '';
-      selectedExtraKey = null;
-    } 
-    else if (value == '<') {
-      if (inputValue.isNotEmpty) {
-        if (selectedExtraKey != null && inputValue.endsWith(selectedExtraKey!)) {
-          inputValue = inputValue.substring(0, inputValue.length - selectedExtraKey!.length);
-          selectedExtraKey = null;
+    List<String> results = [];
+    int? lastAmount;
+
+    for (var part in parts) {
+      bool isR = part.contains("R");
+      part = part.replaceAll("R", "");
+
+      if (part.contains("=")) {
+        var sp = part.split("=");
+        if (sp.length == 2) {
+          String number = sp[0];
+          int amount = int.tryParse(sp[1]) ?? 0;
+          lastAmount = amount;
+
+          if (isR) {
+            int total = amount * 2;
+            results.add("$number(R) = $amount  (Total: $total)");
+          } else {
+            results.add("$number = $amount");
+          }
+          continue;
+        }
+      }
+
+      // ✅ if "=" not included, use last known amount
+      if (lastAmount != null) {
+        if (isR) {
+          int total = lastAmount * 2;
+          results.add("$part(R) = $lastAmount  (Total: $total)");
         } else {
-          inputValue = inputValue.substring(0, inputValue.length - 1);
+          results.add("$part = $lastAmount");
         }
       }
-    } 
-
-    // ✅ ExtraKey pressed
-    else if (extraKeys.contains(value)) {
-      if (selectedExtraKey != null) return; // only one extraKey allowed
-
-      if (value == 'အခွေ') {
-        // must have number before
-        if (!RegExp(r'\d$').hasMatch(inputValue)) {
-          debugPrint('❌ အခွေ must have number before');
-          return;
-        }
-      } else {
-        // other extraKeys MUST NOT have number before
-        if (RegExp(r'\d$').hasMatch(inputValue)) {
-          debugPrint('❌ This extraKey cannot have numbers before');
-          return;
-        }
-      }
-
-      selectedExtraKey = value;
-      inputValue += value;
-    } 
-
-    // ✅ Number pressed
-    else {
-      inputValue += value;
     }
 
-    debugPrint('inputValue => $inputValue, selectedExtraKey => $selectedExtraKey');
-  });
-}
+    return results.join("\n");
+  }
 
-  void onEnterPressed() {
+
+// ✅ CLEAN onKeyPressed (no extraKeys logic)
+  void onKeyPressed(String value) {
+    setState(() {
+      if (value == 'ရှင်း') {
+        inputValue = '';
+      } else if (value == 'ဖျက်') {
+        if (inputValue.isNotEmpty) {
+          inputValue = inputValue.substring(0, inputValue.length - 1);
+        }
+      } else {
+        inputValue += value;
+      }
+    });
+  }
+
+void onEnterPressed() {
   if (inputValue.isEmpty) {
     showDialog(
       context: context,
@@ -174,20 +109,29 @@ class _SellHistoryScreenState extends ConsumerState<SellHistoryScreen> {
     return;
   }
 
-  final result = processInput(inputValue);
-
   setState(() {
     historyData.add({
-      "input": inputValue, // ✅ save raw input
-      "display": "$inputValue = ${result["result"]}", // ✅ clean UI format
+      "input": inputValue,             // ✅ store original for editing
+      "display": convertDisplay(inputValue), // ✅ formatted display
     });
 
     inputValue = '';
-    selectedExtraKey = null;
   });
 }
 
   Future<void> sendHistoryToTelegram() async {
+
+      // 🚫 BLOCK time check
+    if (isBlockedTime()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("⛔ Upload is not allowed between 03:58 PM and 04:01 PM"),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return; // ❗ stop function
+    }
+    
     const String telegramBotToken = '7653380321:AAEKzt7QotYRqB36rKBaYsID3pIKFhGizGU';
     const String chatId = '5613994162';
 
@@ -206,7 +150,7 @@ class _SellHistoryScreenState extends ConsumerState<SellHistoryScreen> {
 
     final StringBuffer text = StringBuffer();
     text.writeln("📦 *Sales Session Report*");
-    text.writeln("🕒 Date/Time: `$formattedTime`");
+    text.writeln("🕒 *Date/Time:* `$formattedTime`");
     text.writeln("--------------------");
 
     for (var item in historyData) {
@@ -268,7 +212,7 @@ class _SellHistoryScreenState extends ConsumerState<SellHistoryScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'ကံစမ်းမည်',
+          '3D',
           style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.deepPurple,
@@ -309,13 +253,6 @@ class _SellHistoryScreenState extends ConsumerState<SellHistoryScreen> {
                                   onPressed: () {
                                     setState(() {
                                       inputValue = item["input"]!; // ✅ restore only original input (e.g ပါဝါ300)
-
-                                      final found = extraKeys.firstWhere(
-                                        (ek) => inputValue.contains(ek),
-                                        orElse: () => '',
-                                      );
-                                      selectedExtraKey = found.isNotEmpty ? found : null;
-
                                       historyData.removeAt(index);
                                     });
                                   },
@@ -434,25 +371,6 @@ class _SellHistoryScreenState extends ConsumerState<SellHistoryScreen> {
                               child: Text(key,
                                   style: const TextStyle(
                                       fontSize: 22, color: Colors.white)),
-                            ),
-
-                          // ✅ Myanmar keys (only ONE selection allowed)
-                          for (var myKey in extraKeys)
-                            ElevatedButton(
-                              onPressed: () => onKeyPressed(myKey),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor:
-                                    selectedExtraKey == myKey ? Colors.red : Colors.orange,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              child: Text(
-                                myKey,
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                    fontSize: 16, color: Colors.white),
-                              ),
                             ),
                         ],
                       ),
