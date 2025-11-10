@@ -102,7 +102,8 @@ class _SellHistoryScreenState extends ConsumerState<TwoDSellHistoryScreen> {
       '7', '8', '9',
       '4', '5', '6',
       '1', '2', '3',
-      'ရှင်း', '0', 'ဖျက်',
+      '@', '0', '=',
+      'ရှင်း', '', 'ဖျက်',
     ];
 
   final List<String> extraKeys = [
@@ -119,8 +120,54 @@ class _SellHistoryScreenState extends ConsumerState<TwoDSellHistoryScreen> {
       'စုံစုံ အပူး',
     ];
 
+  List<String> convertDisplayFormat(String input) {
+    // If input contains any extra key, do NOT split
+    for (var key in extraKeys) {
+      if (input.contains(key)) {
+        return [input]; // show original only
+      }
+    }
+
+    // Normal @= split logic
+    if (input.contains('@') && input.contains('=')) {
+      final parts = input.split('=');
+      if (parts.length != 2) return [input];
+
+      final left = parts[0].split('@');
+      final amount = parts[1];
+
+      return left.map((e) => "$e=$amount").toList();
+    }
+
+    return [input];
+  }
+
+
   void onKeyPressed(String value) {
   setState(() {
+       // ❌ BLOCK @ and = when extraKey is selected
+    if (selectedExtraKey != null && (value == '@' || value == '=')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("❌ '@' , '=' ကို သုံး၍ မရပါ"),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // ❌ Also block if user tries to paste or input them manually
+    if (selectedExtraKey != null && (inputValue.contains('@') || inputValue.contains('='))) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("❌ '@' , '=' ကို သုံး၍ မရပါ"),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+    
+
     if (value == 'ရှင်း') {
       inputValue = '';
       selectedExtraKey = null;
@@ -167,21 +214,83 @@ class _SellHistoryScreenState extends ConsumerState<TwoDSellHistoryScreen> {
   });
 }
 
-  void onEnterPressed() {
-  if (inputValue.isEmpty) return;
+bool isValidInput(String input) {
+  // If input contains extraKey → always valid
+  if (selectedExtraKey != null) return true;
 
-  final result = processInput(inputValue);
+  // If input contains @ or =, validate the pattern
+  final pattern = RegExp(r'^(\d+@)*\d+=\d+$'); 
+  // ✅ Explanation:
+  // (\d+@)* → zero or more groups of digits followed by @
+  // \d+     → digits before =
+  // =\d+    → = followed by digits (amount)
 
-  setState(() {
-    historyData.add({
-      "input": inputValue, // ✅ save raw input
-      "display": "$inputValue = ${result["result"]}", // ✅ clean UI format
-    });
-
-    inputValue = '';
-    selectedExtraKey = null;
-  });
+  return pattern.hasMatch(input);
 }
+
+
+  void onEnterPressed() {
+    if (inputValue.isEmpty) return;
+
+      // ❌ BLOCK invalid input
+  if (!isValidInput(inputValue)) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("⚠️ပုံစံမှားနေပါသည်! ပုံစံအမှန် - 78@95@32=200"),
+        backgroundColor: Colors.red,
+      ),
+    );
+    return;
+  }
+
+
+    final result = processInput(inputValue); // ✅ this already calculates 2000
+    final total = result["result"];
+
+    // If extraKey exists → NO SPLIT, but show result
+    if (selectedExtraKey != null) {
+      setState(() {
+        historyData.add({
+          "input": inputValue,                 // for edit restore
+          "display": "$inputValue = $total",  // ✅ output now: ပါဝါ200 = 2000
+        });
+        inputValue = '';
+        selectedExtraKey = null;
+      });
+      return;
+    }
+
+    // Normal split logic for 73@56@77=300
+    if (inputValue.contains('@') && inputValue.contains('=')) {
+      final parts = inputValue.split('=');
+      if (parts.length == 2) {
+        final left = parts[0].split('@');
+        final amount = parts[1];
+
+        setState(() {
+          for (var num in left) {
+            historyData.add({
+              "input": inputValue,
+              "display": "$num=$amount",
+            });
+          }
+        });
+      }
+    } else {
+      // Normal single number like 56=300
+      setState(() {
+        historyData.add({
+          "input": inputValue,
+          "display": inputValue,
+        });
+      });
+    }
+
+    setState(() {
+      inputValue = '';
+      selectedExtraKey = null;
+    });
+  }
 
   void showConfirmModal() {
   final user = ref.read(authProvider);
@@ -359,7 +468,7 @@ class _SellHistoryScreenState extends ConsumerState<TwoDSellHistoryScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    "နမူနာ။ ။ 123အခွေ500, အပူး400",
+                    "နမူနာ။ ။ 12@34= 200 , 123အခွေ500, အပူး400",
                     style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 10),
@@ -378,19 +487,22 @@ class _SellHistoryScreenState extends ConsumerState<TwoDSellHistoryScreen> {
                               children: [
                                 IconButton(
                                   icon: const Icon(Icons.edit, color: Colors.blue),
-                                  onPressed: () {
-                                    setState(() {
-                                      inputValue = item["input"]!; // ✅ restore only original input (e.g ပါဝါ300)
+                                   onPressed: () {
+                                      setState(() {
+                                        // restore the full input for editing
+                                        inputValue = item["input"]!;
 
-                                      final found = extraKeys.firstWhere(
-                                        (ek) => inputValue.contains(ek),
-                                        orElse: () => '',
-                                      );
-                                      selectedExtraKey = found.isNotEmpty ? found : null;
+                                        // detect any extra key
+                                        final found = extraKeys.firstWhere(
+                                          (ek) => inputValue.contains(ek),
+                                          orElse: () => '',
+                                        );
+                                        selectedExtraKey = found.isNotEmpty ? found : null;
 
-                                      historyData.removeAt(index);
-                                    });
-                                  },
+                                        // remove ALL history items that have the same original input
+                                        historyData.removeWhere((element) => element["input"] == inputValue);
+                                      });
+                                    },
                                 ),
                                 IconButton(
                                   icon: const Icon(Icons.delete, color: Colors.red),
