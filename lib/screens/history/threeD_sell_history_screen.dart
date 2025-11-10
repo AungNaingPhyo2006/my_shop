@@ -262,10 +262,11 @@ void showConfirmModal() {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    "နမူနာ။ ။ 123@345=500, 456R=400",
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                  ),
+                  if (historyData.isEmpty)
+                    const Text(
+                      "နမူနာ။ ။ 12@34= 200 , 123အခွေ500, အပူး400",
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
                   const SizedBox(height: 10),
 
                   Expanded(
