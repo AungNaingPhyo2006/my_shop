@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
+import 'package:my_shop/providers/auth_provider.dart';
 
 class TwoDSellHistoryScreen extends ConsumerStatefulWidget {
   const TwoDSellHistoryScreen({super.key});
@@ -167,22 +168,7 @@ class _SellHistoryScreenState extends ConsumerState<TwoDSellHistoryScreen> {
 }
 
   void onEnterPressed() {
-  if (inputValue.isEmpty) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text("Warning"),
-        content: const Text("No entered value."),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("OK"),
-          )
-        ],
-      ),
-    );
-    return;
-  }
+  if (inputValue.isEmpty) return;
 
   final result = processInput(inputValue);
 
@@ -197,13 +183,75 @@ class _SellHistoryScreenState extends ConsumerState<TwoDSellHistoryScreen> {
   });
 }
 
-  Future<void> sendHistoryToTelegram() async {
+  void showConfirmModal() {
+  final user = ref.read(authProvider);
+  final defaultName = user?['userName']?.toString() ?? 'Casher';
+  final displayRole = user?['roleName']?.toString() ?? '';
+
+  TextEditingController nameController = TextEditingController(text: defaultName);
+
+  showDialog(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        title: const Text("တင်မည့်သူ အတည်ပြုရန်"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text("Role: $displayRole",
+                style: const TextStyle(fontWeight: FontWeight.w500)),
+            const SizedBox(height: 10),
+            const Text("အမည်"),
+            const SizedBox(height: 6),
+            TextField(
+              controller: nameController,
+              decoration: InputDecoration(
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                hintText: "အမည်ထည့်ပါ",
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("မလုပ်တော့ပါ"),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final enteredName = nameController.text.trim();
+
+              // ❗ BLOCK EMPTY NAME
+              if (enteredName.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text("⚠ အမည် ထည့်ရန်လိုပါသည်!"),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+                return; // ❗ stop here, don't close modal
+              }
+
+              Navigator.pop(context);
+              sendHistoryToTelegram(enteredName, displayRole);
+            },
+            child: const Text("အိုကေ"),
+          ),
+        ],
+      );
+    },
+  );
+}
+
+
+  Future<void> sendHistoryToTelegram(String senderName, String senderRole) async {
 
       // 🚫 BLOCK time check
     if (isBlockedTime()) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("⛔ Upload is not allowed between 11:58 AM and 12:01 PM"),
+          content: Text("⛔ 11:58 AM မှ  12:01 PM အတွင်း တင်ခွင့်မပြုပါ"),
           backgroundColor: Colors.red,
         ),
       );
@@ -215,7 +263,7 @@ class _SellHistoryScreenState extends ConsumerState<TwoDSellHistoryScreen> {
 
     if (historyData.isEmpty) {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("❌ No history to send!")),
+      const SnackBar(content: Text("❌ တင်ရန် အကွက် မရှိပါ!")),
     );
     return;
   }
@@ -227,8 +275,10 @@ class _SellHistoryScreenState extends ConsumerState<TwoDSellHistoryScreen> {
     final formattedTime = "${now.day}/${now.month}/${now.year}  ${now.hour}:${now.minute.toString().padLeft(2, '0')}";
 
     final StringBuffer text = StringBuffer();
-    text.writeln("📦 *Sales Session Report*");
-    text.writeln("🕒 *Date/Time:* `$formattedTime`");
+    text.writeln("📦 *စာရင်းအသစ် ရောက်လာပါသည်*");
+    text.writeln("🕒 *တင်သည့် အချိန် - * `$formattedTime`");
+    text.writeln("👤 *အမည် - * $senderName");
+    text.writeln("🎭 *ပုံစံ - * $senderRole");
     text.writeln("--------------------");
 
     for (var item in historyData) {
@@ -236,7 +286,7 @@ class _SellHistoryScreenState extends ConsumerState<TwoDSellHistoryScreen> {
     }
 
     text.writeln("--------------------");
-    text.writeln("✅ Total Items: ${historyData.length}");
+    text.writeln("✅  စုစုပေါင်း =  ${historyData.length}");
 
     final Uri url = Uri.parse("https://api.telegram.org/bot$telegramBotToken/sendMessage");
 
@@ -261,14 +311,14 @@ class _SellHistoryScreenState extends ConsumerState<TwoDSellHistoryScreen> {
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("✅ Sent to Telegram Successfully!")),
+          const SnackBar(content: Text("✅ အောင်မြင်စွာ တင်ပြီးပါပြီ!")),
         );
       } else {
         // ❌ Fail → stop loading, keep history
         setState(() => isSending = false);
 
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("❌ Failed to send: ${response.body}")),
+          SnackBar(content: Text("❌ ${response.body} ကို  တင်၍ မရပါ။")),
         );
       }
     } catch (e) {
@@ -308,11 +358,11 @@ class _SellHistoryScreenState extends ConsumerState<TwoDSellHistoryScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // const Text(
-                  //   "Sell History",
-                  //   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  // ),
-                  // const SizedBox(height: 10),
+                  const Text(
+                    "နမူနာ။ ။ 123အခွေ500, အပူး400",
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 10),
 
                   Expanded(
                     child: ListView.builder(
@@ -412,7 +462,7 @@ class _SellHistoryScreenState extends ConsumerState<TwoDSellHistoryScreen> {
                             const SizedBox(width: 6),
 
                             ElevatedButton(
-                              onPressed: isSending ? null : sendHistoryToTelegram,
+                              onPressed: isSending ? null : showConfirmModal,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.blue,
                                 minimumSize: const Size(40, 50),

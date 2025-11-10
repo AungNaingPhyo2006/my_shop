@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
+import 'package:my_shop/providers/auth_provider.dart';
 
 class ThreeDSellHistoryScreen extends ConsumerStatefulWidget {
   const ThreeDSellHistoryScreen({super.key});
@@ -33,48 +34,6 @@ class _SellHistoryScreenState extends ConsumerState<ThreeDSellHistoryScreen> {
        '@', 'R', '=',
     ];
 
-  String convertDisplay(String input) {
-    input = input.replaceAll(" ", "");
-    List<String> parts = input.split("@");
-
-    List<String> results = [];
-    int? lastAmount;
-
-    for (var part in parts) {
-      bool isR = part.contains("R");
-      part = part.replaceAll("R", "");
-
-      if (part.contains("=")) {
-        var sp = part.split("=");
-        if (sp.length == 2) {
-          String number = sp[0];
-          int amount = int.tryParse(sp[1]) ?? 0;
-          lastAmount = amount;
-
-          if (isR) {
-            int total = amount * 2;
-            results.add("$number(R) = $amount  (Total: $total)");
-          } else {
-            results.add("$number = $amount");
-          }
-          continue;
-        }
-      }
-
-      // ✅ if "=" not included, use last known amount
-      if (lastAmount != null) {
-        if (isR) {
-          int total = lastAmount * 2;
-          results.add("$part(R) = $lastAmount  (Total: $total)");
-        } else {
-          results.add("$part = $lastAmount");
-        }
-      }
-    }
-
-    return results.join("\n");
-  }
-
 
 // ✅ CLEAN onKeyPressed (no extraKeys logic)
   void onKeyPressed(String value) {
@@ -91,41 +50,112 @@ class _SellHistoryScreenState extends ConsumerState<ThreeDSellHistoryScreen> {
     });
   }
 
-void onEnterPressed() {
-  if (inputValue.isEmpty) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text("Warning"),
-        content: const Text("No entered value."),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("OK"),
-          )
-        ],
-      ),
-    );
-    return;
+  void onEnterPressed() {
+  if (inputValue.isEmpty) return;
+
+  // ---- 1. Extract left & right side of "=" ----
+  if (!inputValue.contains("=")) return;
+  final parts = inputValue.split("=");
+
+  if (parts.length != 2) return;
+  final left = parts[0];      // e.g "793@567" or "567R"
+  final right = parts[1];     // e.g "300"
+
+  // ---- 2. Split by @ if exists ----
+  List<String> leftItems = left.split("@");  // ["793","567"] or ["567R"]
+
+  // ---- 3. Build display text ----
+  List<String> displayLines = [];
+
+  for (var item in leftItems) {
+    if (item.endsWith("R")) {
+      // 567R → 567 (R) = 300
+      final num = item.replaceAll("R", "");
+      displayLines.add("$num (R) = $right");
+    } else {
+      // 793 → 793 = 300
+      displayLines.add("$item = $right");
+    }
   }
 
   setState(() {
     historyData.add({
-      "input": inputValue,             // ✅ store original for editing
-      "display": convertDisplay(inputValue), // ✅ formatted display
+      "input": inputValue,           // ✅ keep raw input
+      "display": displayLines.join("\n"), // ✅ show multi-line UI
     });
 
     inputValue = '';
   });
 }
 
-  Future<void> sendHistoryToTelegram() async {
+
+void showConfirmModal() {
+  final user = ref.read(authProvider);
+  final defaultName = user?['userName']?.toString() ?? 'Casher';
+  final displayRole = user?['roleName']?.toString() ?? '';
+
+  TextEditingController nameController = TextEditingController(text: defaultName);
+
+  showDialog(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        title: const Text("တင်မည့်သူ အတည်ပြုရန်"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 10),
+            const Text("အမည်"),
+            const SizedBox(height: 6),
+            TextField(
+              controller: nameController,
+              decoration: InputDecoration(
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                hintText: "အမည်ထည့်ပါ",
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("မလုပ်တော့ပါ"),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final enteredName = nameController.text.trim();
+
+              // ❗ BLOCK EMPTY NAME
+              if (enteredName.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text("⚠ အမည် ထည့်ရန်လိုပါသည်!"),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+                return; // ❗ stop here, don't close modal
+              }
+
+              Navigator.pop(context);
+              sendHistoryToTelegram(enteredName, displayRole);
+            },
+            child: const Text("အိုကေ"),
+          ),
+        ],
+      );
+    },
+  );
+}
+
+
+  Future<void> sendHistoryToTelegram(String senderName, String senderRole) async {
 
       // 🚫 BLOCK time check
     if (isBlockedTime()) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("⛔ Upload is not allowed between 03:58 PM and 04:01 PM"),
+          content: Text("⛔ 03:58 PM မှ 04:01 PM အတွင်း တင်ခွင့်မပြုပါ"),
           backgroundColor: Colors.red,
         ),
       );
@@ -137,7 +167,7 @@ void onEnterPressed() {
 
     if (historyData.isEmpty) {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("❌ No history to send!")),
+      const SnackBar(content: Text("❌ တင်ရန်  အကွက် မရှိပါ!")),
     );
     return;
   }
@@ -149,8 +179,10 @@ void onEnterPressed() {
     final formattedTime = "${now.day}/${now.month}/${now.year}  ${now.hour}:${now.minute.toString().padLeft(2, '0')}";
 
     final StringBuffer text = StringBuffer();
-    text.writeln("📦 *Sales Session Report*");
-    text.writeln("🕒 *Date/Time:* `$formattedTime`");
+    text.writeln("📦 *စာရင်းအသစ် ရောက်လာပါသည်*");
+    text.writeln("🕒 *တင်သည့် အချိန် - * `$formattedTime`");
+    text.writeln("👤 *အမည် - * $senderName");
+    text.writeln("🎭 *ပုံစံ - * $senderRole");
     text.writeln("--------------------");
 
     for (var item in historyData) {
@@ -158,7 +190,7 @@ void onEnterPressed() {
     }
 
     text.writeln("--------------------");
-    text.writeln("✅ Total Items: ${historyData.length}");
+    text.writeln("✅ စုစုပေါင်း = ${historyData.length}");
 
     final Uri url = Uri.parse("https://api.telegram.org/bot$telegramBotToken/sendMessage");
 
@@ -183,14 +215,14 @@ void onEnterPressed() {
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("✅ Sent to Telegram Successfully!")),
+          const SnackBar(content: Text("✅ အောင်မြင်စွာ တင်ပြီးပါပြီ!")),
         );
       } else {
         // ❌ Fail → stop loading, keep history
         setState(() => isSending = false);
 
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("❌ Failed to send: ${response.body}")),
+          SnackBar(content: Text("❌ ${response.body}  ကို  တင်၍ မရပါ။")),
         );
       }
     } catch (e) {
@@ -230,11 +262,11 @@ void onEnterPressed() {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // const Text(
-                  //   "Sell History",
-                  //   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  // ),
-                  // const SizedBox(height: 10),
+                  const Text(
+                    "နမူနာ။ ။ 123@345=500, 456R=400",
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 10),
 
                   Expanded(
                     child: ListView.builder(
@@ -244,7 +276,10 @@ void onEnterPressed() {
 
                         return Card(
                           child: ListTile(
-                            title: Text(item["display"]!), // ✅ shows "ပါဝါ300 = 3000"
+                            title: Text(
+                              item["display"]!,
+                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                            ),
                             trailing: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
@@ -321,13 +356,13 @@ void onEnterPressed() {
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                               ),
-                              child: const Text("ENTER", style: TextStyle(color: Colors.white)),
+                              child: const Text("အိုကေ", style: TextStyle(color: Colors.white)),
                             ),
 
                             const SizedBox(width: 6),
 
                             ElevatedButton(
-                              onPressed: isSending ? null : sendHistoryToTelegram,
+                              onPressed: isSending ? null : showConfirmModal,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.blue,
                                 minimumSize: const Size(40, 50),

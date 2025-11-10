@@ -4,8 +4,6 @@ import 'package:my_shop/providers/barcode_provider.dart';
 import 'package:my_shop/screens/auth/login_screen.dart';
 import 'package:my_shop/providers/auth_provider.dart';
 import 'package:my_shop/l10n/app_localizations.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:my_shop/services/locale_service.dart';
 
 class SettingScreen extends ConsumerWidget {
   const SettingScreen({super.key});
@@ -135,60 +133,60 @@ class SettingScreen extends ConsumerWidget {
             const SizedBox(height: 30),
 
             // Options Section
-            Expanded(
-              child: ListView(
-                children: [
-                  ListTile(
-                    leading: const Icon(Icons.settings, color: Colors.blue),
-                    title: Text(AppLocalizations.of(context)!.appSettings),
-                    trailing:
-                        const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
-                    onTap: () {},
-                  ),
-                  const Divider(height: 1),
-                  ListTile(
-                    leading: const Icon(Icons.info_outline, color: Colors.orange),
-                    title: Text(AppLocalizations.of(context)!.aboutApp),
-                    trailing:
-                        const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
-                    onTap: () {},
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.language, color: Colors.green),
-                    title: Text(AppLocalizations.of(context)!.changeLanguage),
-                    onTap: () async {
-                      final selectedLocale = await showDialog<Locale>(
-                        context: context,
-                        builder: (_) => SimpleDialog(
-                          title: Text(AppLocalizations.of(context)!.selectLanguage),
-                          children: [
-                            SimpleDialogOption(
-                              child: const Text('English'),
-                              onPressed: () => Navigator.pop(context, const Locale('en')),
-                            ),
-                            SimpleDialogOption(
-                              child: const Text('မြန်မာ'),
-                              onPressed: () => Navigator.pop(context, const Locale('my')),
-                            ),
-                          ],
-                        ),
-                      );
+            // Expanded(
+            //   child: ListView(
+            //     children: [
+            //       ListTile(
+            //         leading: const Icon(Icons.settings, color: Colors.blue),
+            //         title: Text(AppLocalizations.of(context)!.appSettings),
+            //         trailing:
+            //             const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+            //         onTap: () {},
+            //       ),
+            //       const Divider(height: 1),
+            //       ListTile(
+            //         leading: const Icon(Icons.info_outline, color: Colors.orange),
+            //         title: Text(AppLocalizations.of(context)!.aboutApp),
+            //         trailing:
+            //             const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+            //         onTap: () {},
+            //       ),
+            //       ListTile(
+            //         leading: const Icon(Icons.language, color: Colors.green),
+            //         title: Text(AppLocalizations.of(context)!.changeLanguage),
+            //         onTap: () async {
+            //           final selectedLocale = await showDialog<Locale>(
+            //             context: context,
+            //             builder: (_) => SimpleDialog(
+            //               title: Text(AppLocalizations.of(context)!.selectLanguage),
+            //               children: [
+            //                 SimpleDialogOption(
+            //                   child: const Text('English'),
+            //                   onPressed: () => Navigator.pop(context, const Locale('en')),
+            //                 ),
+            //                 SimpleDialogOption(
+            //                   child: const Text('မြန်မာ'),
+            //                   onPressed: () => Navigator.pop(context, const Locale('my')),
+            //                 ),
+            //               ],
+            //             ),
+            //           );
 
-                      if (selectedLocale != null) {
-                        // Persist and update global app locale notifier so MaterialApp rebuilds
-                        try {
-                          final prefs = await SharedPreferences.getInstance();
-                          await prefs.setString('locale', selectedLocale.languageCode);
-                        } catch (_) {}
-                        appLocale.value = selectedLocale;
-                      }
-                    },
-                  ),
+            //           if (selectedLocale != null) {
+            //             // Persist and update global app locale notifier so MaterialApp rebuilds
+            //             try {
+            //               final prefs = await SharedPreferences.getInstance();
+            //               await prefs.setString('locale', selectedLocale.languageCode);
+            //             } catch (_) {}
+            //             appLocale.value = selectedLocale;
+            //           }
+            //         },
+            //       ),
 
-                  const Divider(height: 1),
-                ],
-              ),
-            ),
+            //       const Divider(height: 1),
+            //     ],
+            //   ),
+            // ),
 
             // Logout Button
                   Padding(
