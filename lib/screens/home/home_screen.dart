@@ -47,7 +47,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'Baby Boss',
+          '2D Lover',
           style: TextStyle(
             color: Colors.white,
             fontSize: 20,
@@ -226,6 +226,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     label: "3D",
                     icon: Icons.point_of_sale,
                     page: ThreeDSellHistoryScreen(),
+                    iconColor: Colors.red,
                   ),
                   GridNavButton(
                     label: "Products",

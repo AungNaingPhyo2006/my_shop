@@ -69,7 +69,7 @@ class _MyAppState extends State<MyApp> {
       valueListenable: appLocale,
       builder: (context, localeValue, _) {
         return MaterialApp(
-          title: 'My Shop',
+          title: '2D Lover',
           theme: ThemeData(
             colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
             useMaterial3: true,

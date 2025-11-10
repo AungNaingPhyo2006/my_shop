@@ -4,12 +4,14 @@ class GridNavButton extends StatelessWidget {
   final String label;
   final IconData icon;
   final Widget page;
+  final Color? iconColor; // ✅ Add this
 
   const GridNavButton({
     super.key,
     required this.label,
     required this.icon,
     required this.page,
+    this.iconColor, // ✅ Add this
   });
 
   @override
@@ -29,7 +31,11 @@ class GridNavButton extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 32, color: Colors.deepPurple),
+            Icon(
+              icon,
+              size: 32,
+              color: iconColor ?? Colors.deepPurple, // ✅ Use custom color if provided
+            ),
             const SizedBox(height: 8),
             Text(
               label,
