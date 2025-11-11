@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
+import 'package:my_shop/db/db_helper.dart';
 import 'package:my_shop/providers/auth_provider.dart';
 
 class TwoDSellHistoryScreen extends ConsumerStatefulWidget {
@@ -354,8 +355,7 @@ bool isValidInput(String input) {
 }
 
 
-  Future<void> sendHistoryToTelegram(String senderName, String senderRole) async {
-
+  Future<void> sendHistoryToTelegram(String senderName, String senderRole) async {    
       // 🚫 BLOCK time check
     if (isBlockedTime()) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -390,6 +390,7 @@ bool isValidInput(String input) {
     text.writeln("🎭 *ပုံစံ - * $senderRole");
     text.writeln("--------------------");
 
+    
     for (var item in historyData) {
       text.writeln("• ${item["display"]}");
     }
@@ -413,6 +414,26 @@ bool isValidInput(String input) {
       );
 
       if (response.statusCode == 200) {
+         // ✅ Save each history item into Database
+          for (var item in historyData) {
+            final display = item["display"] ?? "";
+            final input = item["input"] ?? "";
+
+            double amount = 0;
+            if (display.contains("=")) {
+              amount = double.tryParse(display.split("=").last.trim()) ?? 0;
+            }
+
+            await DBHelper.insertSale(
+              saleDate: formattedTime,
+              userName: senderName,
+              input: input,
+              display: display,
+              amount: amount,
+            );
+          }
+
+        
         // ✅ Success → clear history + hide loading
         setState(() {
           historyData.clear();

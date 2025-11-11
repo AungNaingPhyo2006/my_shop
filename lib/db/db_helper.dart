@@ -18,185 +18,52 @@ class DBHelper {
       path,
       version: 1,
       onCreate: (db, version) async {
-        await db.execute('''
-          CREATE TABLE products (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            product_name TEXT,
-            barcode TEXT,
-            qty INTEGER,
-            buy_price REAL,
-            sell_price REAL,
-            discount REAL,
-            remark TEXT
-          )
-        ''');
-
-        await db.execute('''
-        CREATE TABLE sales (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          product_id INTEGER,
-          product_name TEXT,
-          barcode TEXT,
-          sell_price REAL,
-          quantity_sold INTEGER,
-          discount REAL,
-          remark TEXT,
-          sale_date TEXT,
-          FOREIGN KEY (product_id) REFERENCES products(id)
-        )
-      ''');
-
       await db.execute('''
       CREATE TABLE sales_summary (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        sale_date TEXT,
-        product_name TEXT,
-        quantity_sold INTEGER,
-        unit_price REAL,
-        subtotal REAL,
-        total_sale_amount REAL
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          sale_date TEXT,
+          user_name TEXT,
+          input TEXT,
+          display TEXT,
+          amount REAL
       )
       ''');
-
-
       },
     );
   }
 
-  static Future<void> insertProduct(Map<String, dynamic> data) async {
+  static Future<void> insertSale({
+    required String saleDate,
+    required String userName,
+    required String input,
+    required String display,
+    required double amount,
+  }) async {
     final db = await database;
-    await db.insert('products', data);
-  }
-
-  static Future<List<Map<String, dynamic>>> getProducts() async {
-    final db = await database;
-    return await db.query('products', orderBy: 'id DESC');
-  }
-
-  static Future<void> deleteAllProducts() async {
-  final db = await database;
-  await db.delete('products');
-}
-
-  static Future<void> sellProductByBarcode(String barcode) async {
-    final db = await database;
-
-    final List<Map<String, dynamic>> result = await db.query(
-      'products',
-      where: 'barcode = ?',
-      whereArgs: [barcode],
-    );
-
-    if (result.isNotEmpty) {
-      final product = result.first;
-      int currentQty = product['qty'];
-
-      if (currentQty > 0) {
-        int newQty = currentQty - 1;
-
-        // 1. Update the product qty
-        await db.update(
-          'products',
-          {'qty': newQty},
-          where: 'id = ?',
-          whereArgs: [product['id']],
-        );
-
-        // 2. Insert into sales table
-        await db.insert('sales', {
-          'product_id': product['id'],
-          'barcode': barcode,
-          'quantity_sold': 1,
-          'sale_date': DateTime.now().toIso8601String(),
-        });
-
-        print('✅ Product sold and logged to sales table.');
-      } else {
-        print('❌ Product out of stock.');
-      }
-    } else {
-      print('❌ Product with barcode $barcode not found.');
-    }
+    await db.insert('sales_summary', {
+      "sale_date": saleDate,
+      "user_name": userName,
+      "input": input,
+      "display": display,
+      "amount": amount,
+    });
   }
 
   static Future<List<Map<String, dynamic>>> getSales() async {
-      final db = await database;
-      return await db.query('sales', orderBy: 'id DESC');
-    }
-
-  static Future<void> deleteSales() async {
     final db = await database;
-    await db.delete('sales');
+    return await db.query('sales_summary', orderBy: 'id DESC');
   }
 
-  static Future<List<Map<String, dynamic>>> getTotalProductWithSales() async {
-    final db = await DBHelper.database;
-    return await db.rawQuery('''
-      SELECT 
-        p.product_name,
-        p.barcode,
-        p.qty AS current_qty,
-        IFNULL(SUM(s.quantity_sold), 0) AS sold_qty,
-        (p.qty + IFNULL(SUM(s.quantity_sold), 0)) AS total_qty,
-        p.sell_price,
-        p.discount,
-        p.remark
-      FROM products p
-      LEFT JOIN sales s 
-        ON p.barcode = s.barcode AND p.product_name = s.product_name
-      GROUP BY p.barcode, p.product_name
-    ''');
+  static Future<void> deleteSale(int id) async {
+    final db = await database;
+    await db.delete("sales_summary", where: "id = ?", whereArgs: [id]);
   }
 
-  static Future<Map<String, dynamic>?> getProductByBarcode(String barcode) async {
+  static Future<void> deleteMultipleSales(List<int> ids) async {
+    if (ids.isEmpty) return;
     final db = await database;
-    final List<Map<String, dynamic>> result =
-        await db.query('products', where: 'barcode = ?', whereArgs: [barcode]);
-    if (result.isNotEmpty) {
-      return result.first;
-    }
-    return null;
-  }
-
-  static Future<void> updateProduct(String barcode, Map<String, dynamic> data) async {
-    final db = await database;
-    await db.update('products', data, where: 'barcode = ?', whereArgs: [barcode]);
-  }
-
-  static Future<void> deleteProduct(int id) async {
-    final db = await database;
-    await db.delete(
-      'products',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
-  }
-
-  static Future<void> insertSalesSummaryProducts({
-    required List<Map<String, dynamic>> products,
-    required double totalSaleAmount,
-  }) async {
-    final db = await database;
-    final now = DateTime.now().toIso8601String();
-
-    for (var product in products) {
-      final int qty = product['quantity_sold'] is int
-          ? product['quantity_sold']
-          : int.tryParse(product['quantity_sold'].toString()) ?? 0;
-      final double unitPrice = product['sell_price'] is double
-          ? product['sell_price']
-          : double.tryParse(product['sell_price'].toString()) ?? 0.0;
-      final double subTotal = qty * unitPrice;
-
-      await db.insert('sales_summary', {
-        'sale_date': now,
-        'product_name': product['product_name'],
-        'quantity_sold': qty,
-        'unit_price': unitPrice,
-        'subtotal': subTotal,
-        'total_sale_amount': totalSaleAmount,
-      });
-    }
+    final idString = ids.join(","); // "1,2,3"
+    await db.rawDelete("DELETE FROM sales_summary WHERE id IN ($idString)");
   }
 
 
