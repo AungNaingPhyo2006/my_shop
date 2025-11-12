@@ -114,10 +114,12 @@ class _RemainProductListScreenState extends State<RemainProductListScreen> {
                       ],
                     ),
                     Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
+                      width: 50,
+                      height: 50,
+                      alignment: Alignment.center,
+                      decoration: const BoxDecoration(
                         color: Colors.deepPurple,
-                        borderRadius: BorderRadius.circular(8),
+                        shape: BoxShape.circle, // 👈 Perfect circle
                       ),
                       child: Text(
                         c['twod'],
@@ -128,6 +130,7 @@ class _RemainProductListScreenState extends State<RemainProductListScreen> {
                         ),
                       ),
                     )
+
                   ],
                 ),
               );
