@@ -25,6 +25,7 @@ class DBHelper {
           user_name TEXT,
           input TEXT,
           display TEXT,
+          category TEXT,
           amount REAL
       )
       ''');
@@ -37,6 +38,7 @@ class DBHelper {
     required String userName,
     required String input,
     required String display,
+    required String category,
     required double amount,
   }) async {
     final db = await database;
@@ -45,6 +47,7 @@ class DBHelper {
       "user_name": userName,
       "input": input,
       "display": display,
+      "category": category,
       "amount": amount,
     });
   }

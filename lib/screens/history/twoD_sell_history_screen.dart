@@ -429,6 +429,7 @@ bool isValidInput(String input) {
               userName: senderName,
               input: input,
               display: display,
+              category:'2D',
               amount: amount,
             );
           }

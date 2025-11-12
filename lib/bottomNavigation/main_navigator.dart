@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:my_shop/screens/home/home_screen.dart';
-import 'package:my_shop/screens/inventory/inventory_screen.dart';
-import 'package:my_shop/screens/profits/profit_screen.dart';
 import 'package:my_shop/screens/setting/setting_screen.dart';
 
 class MainNavigator extends StatefulWidget {
@@ -17,8 +15,6 @@ class _MainNavigatorState extends State<MainNavigator> {
   // Make sure the number of screens matches the bottom navigation items
   final List<Widget> widgetOptions = const [
     HomeScreen(),
-    InventoryScreen(),
-    ProfitScreen(),
     SettingScreen(),
   ];
 
@@ -43,19 +39,11 @@ class _MainNavigatorState extends State<MainNavigator> {
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
-            label: 'Home',
+            label: 'မူလ',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.inventory),
-            label: 'Inventory',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.attach_money),
-            label: 'Profits',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: 'Settings',
+            icon: Icon(Icons.verified_user),
+            label: 'ပရိုဖိုင်',
           ),
         ],
       ),

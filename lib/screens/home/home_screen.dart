@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:my_shop/providers/two_provider.dart';
 import 'package:my_shop/screens/history/threeD_sell_history_screen.dart';
 import 'package:my_shop/screens/history/twoD_sell_history_screen.dart';
@@ -64,7 +65,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                // ✅ Last updated time UI
             if (lastUpdated.isNotEmpty)
               Text(
-                "Last Updated : $lastUpdated",
+                "ရက်စွဲ - ${DateFormat('dd-MMM-yyyy HH:mm:ss').format(DateTime.parse(lastUpdated))}",
                 style: const TextStyle(fontSize: 13, color: Colors.grey),
               ),
 
@@ -229,12 +230,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     iconColor: Colors.red,
                   ),
                   GridNavButton(
-                    label: "Products",
+                    label: "စာရင်း",
                     icon: Icons.receipt_long,
                     page: ProductListScreen(),
                   ),
                   GridNavButton(
-                    label: "Remain",
+                    label: "ထွက်ပြီး",
                     icon: Icons.inventory,
                     page: RemainProductListScreen(),
                   ),

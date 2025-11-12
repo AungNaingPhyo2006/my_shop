@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
+import 'package:my_shop/db/db_helper.dart';
 import 'package:my_shop/providers/auth_provider.dart';
 
 class ThreeDSellHistoryScreen extends ConsumerStatefulWidget {
@@ -208,6 +209,25 @@ void showConfirmModal() {
       );
 
       if (response.statusCode == 200) {
+                 // ✅ Save each history item into Database
+          for (var item in historyData) {
+            final display = item["display"] ?? "";
+            final input = item["input"] ?? "";
+
+            double amount = 0;
+            if (display.contains("=")) {
+              amount = double.tryParse(display.split("=").last.trim()) ?? 0;
+            }
+
+            await DBHelper.insertSale(
+              saleDate: formattedTime,
+              userName: senderName,
+              input: input,
+              display: display,
+              category:'3D',
+              amount: amount,
+            );
+          }
         // ✅ Success → clear history + hide loading
         setState(() {
           historyData.clear();
@@ -264,7 +284,7 @@ void showConfirmModal() {
                 children: [
                   if (historyData.isEmpty)
                     const Text(
-                      "နမူနာ။ ။ 12@34= 200 , 123အခွေ500, အပူး400",
+                      "နမူနာ။ ။ 123@345= 200 , 123R=500",
                       style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                     ),
                   const SizedBox(height: 10),

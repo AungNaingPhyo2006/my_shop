@@ -12,18 +12,15 @@ class SettingScreen extends ConsumerWidget {
     final result = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         title: Text(
           AppLocalizations.of(ctx)!.logout,
-          style: const TextStyle(fontWeight: FontWeight.bold),
+          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 18),
         ),
         content: Text(AppLocalizations.of(ctx)!.logoutConfirmation),
         actionsAlignment: MainAxisAlignment.spaceBetween,
         actions: [
           TextButton(
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.grey[700],
-            ),
             onPressed: () => Navigator.of(ctx).pop(false),
             child: Text(AppLocalizations.of(ctx)!.cancel),
           ),
@@ -31,7 +28,7 @@ class SettingScreen extends ConsumerWidget {
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.redAccent,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(10),
               ),
             ),
             onPressed: () => Navigator.of(ctx).pop(true),
@@ -42,16 +39,8 @@ class SettingScreen extends ConsumerWidget {
     );
 
     if (result == true) {
-      // Clear important app state (scanned barcode) on logout
-      try {
-        ref.read(barcodeProvider.notifier).state = null;
-      } catch (_) {}
-
-      // Clear saved credentials (if any) and navigate to Login
-      try {
-        ref.read(authProvider.notifier).logout(clearSaved: true);
-      } catch (_) {}
-
+      ref.read(barcodeProvider.notifier).state = null;
+      ref.read(authProvider.notifier).logout(clearSaved: true);
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => const LoginScreen()),
@@ -67,43 +56,70 @@ class SettingScreen extends ConsumerWidget {
     final displayRole = user?['roleName']?.toString() ?? '';
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF3F4F6),
+      backgroundColor: const Color(0xFFF5F6FA),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1565C0),
-        title: Text(
-          AppLocalizations.of(context)!.settings,
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        elevation: 0,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xff4A00E0), Color(0xff8E2DE2)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+        title: const Text(
+          'ပရိုဖိုင်',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         centerTitle: true,
       ),
       body: Padding(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 26),
         child: Column(
           children: [
-            // Profile Section
+            // PROFILE CARD
             Container(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(18),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 8,
-                    offset: const Offset(0, 3),
+                    // ignore: deprecated_member_use
+                    color: Colors.black.withOpacity(0.04),
+                    blurRadius: 12,
+                    offset: const Offset(0, 5),
                   ),
                 ],
               ),
               child: Row(
                 children: [
-                  CircleAvatar(
-                    radius: 35,
-                    backgroundColor: Colors.blue.shade100,
-                    child: const Icon(
-                      Icons.person,
-                      color: Colors.blue,
-                      size: 40,
-                    ),
+                  Stack(
+                    children: [
+                      CircleAvatar(
+                        radius: 34,
+                        backgroundColor: Colors.deepPurple.shade100,
+                        child: const Icon(Icons.person, size: 38, color: Colors.deepPurple),
+                      ),
+                      Positioned(
+                        bottom: 0,
+                        right: 2,
+                        child: Container(
+                          width: 14,
+                          height: 14,
+                          decoration: BoxDecoration(
+                            color: Colors.green,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 2),
+                          ),
+                        ),
+                      )
+                    ],
                   ),
                   const SizedBox(width: 16),
                   Column(
@@ -113,104 +129,61 @@ class SettingScreen extends ConsumerWidget {
                         displayName,
                         style: const TextStyle(
                           fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w600,
                           color: Colors.black87,
                         ),
                       ),
                       const SizedBox(height: 4),
-                      Text(
-                        displayRole.isNotEmpty ? displayRole : '',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Colors.black54,
+                      if (displayRole.isNotEmpty)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.deepPurple.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            displayRole,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: Colors.deepPurple,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
                         ),
-                      ),
                     ],
-                  ),
+                  )
                 ],
               ),
             ),
-            const SizedBox(height: 30),
 
-            // Options Section
-            // Expanded(
-            //   child: ListView(
-            //     children: [
-            //       ListTile(
-            //         leading: const Icon(Icons.settings, color: Colors.blue),
-            //         title: Text(AppLocalizations.of(context)!.appSettings),
-            //         trailing:
-            //             const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
-            //         onTap: () {},
-            //       ),
-            //       const Divider(height: 1),
-            //       ListTile(
-            //         leading: const Icon(Icons.info_outline, color: Colors.orange),
-            //         title: Text(AppLocalizations.of(context)!.aboutApp),
-            //         trailing:
-            //             const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
-            //         onTap: () {},
-            //       ),
-            //       ListTile(
-            //         leading: const Icon(Icons.language, color: Colors.green),
-            //         title: Text(AppLocalizations.of(context)!.changeLanguage),
-            //         onTap: () async {
-            //           final selectedLocale = await showDialog<Locale>(
-            //             context: context,
-            //             builder: (_) => SimpleDialog(
-            //               title: Text(AppLocalizations.of(context)!.selectLanguage),
-            //               children: [
-            //                 SimpleDialogOption(
-            //                   child: const Text('English'),
-            //                   onPressed: () => Navigator.pop(context, const Locale('en')),
-            //                 ),
-            //                 SimpleDialogOption(
-            //                   child: const Text('မြန်မာ'),
-            //                   onPressed: () => Navigator.pop(context, const Locale('my')),
-            //                 ),
-            //               ],
-            //             ),
-            //           );
+            const Spacer(),
 
-            //           if (selectedLocale != null) {
-            //             // Persist and update global app locale notifier so MaterialApp rebuilds
-            //             try {
-            //               final prefs = await SharedPreferences.getInstance();
-            //               await prefs.setString('locale', selectedLocale.languageCode);
-            //             } catch (_) {}
-            //             appLocale.value = selectedLocale;
-            //           }
-            //         },
-            //       ),
-
-            //       const Divider(height: 1),
-            //     ],
-            //   ),
-            // ),
-
-            // Logout Button
-                  Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () => _confirmLogout(context, ref),
-                  icon: const Icon(Icons.logout, color: Colors.white),
-                  label: Text(
-                    AppLocalizations.of(context)!.logout,
-                    style: const TextStyle(
-                        fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold),
+            // LOGOUT BUTTON
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => _confirmLogout(context, ref),
+                icon: const Icon(Icons.logout_rounded, color: Colors.white),
+                label: Text(
+                  AppLocalizations.of(context)!.logout,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
                   ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.redAccent,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.redAccent,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
                   ),
+                  elevation: 3,
+                  shadowColor: Colors.redAccent.withOpacity(0.4),
                 ),
               ),
             ),
+
+            const SizedBox(height: 12),
           ],
         ),
       ),
