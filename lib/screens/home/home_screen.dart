@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -19,6 +21,7 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     String lastUpdated = "";
+    Timer? _timer; // <-- Store timer to cancel later
 
   @override
   void initState() {
@@ -30,11 +33,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ref.invalidate(twoDProvider);
     });
 
+    // ✅ Auto refresh every 5 seconds
+    _timer = Timer.periodic(const Duration(seconds: 5), (_) {
+      ref.invalidate(twoDProvider);
+      _updateTime();
+    });
+
     Stream.periodic(const Duration(seconds: 30)).listen((_) {
       ref.invalidate(twoDProvider);
       _updateTime();
     });
   }
+
+  // ✅ Cancel timer when leaving the screen (to prevent memory leaks)
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
 
   void _updateTime() {
     setState(() {
@@ -65,7 +82,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                // ✅ Last updated time UI
             if (lastUpdated.isNotEmpty)
               Text(
-                "ရက်စွဲ - ${DateFormat('dd-MMM-yyyy HH:mm:ss').format(DateTime.parse(lastUpdated))}",
+                "နောက်ဆုံးအပ်ဒိတ် - ${DateFormat('dd-MMM-yyyy HH:mm').format(DateTime.parse(lastUpdated))}",
                 style: const TextStyle(fontSize: 13, color: Colors.grey),
               ),
 
