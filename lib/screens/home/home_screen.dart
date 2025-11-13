@@ -62,6 +62,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final apiData = ref.watch(twoDProvider);
 
+
     return Scaffold(
       appBar: AppBar(
         title: const Text(
@@ -93,7 +94,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               child: apiData.when(
                 data: (data) {
                   if (data.isEmpty) {
-                    return const Center(child: Text("No data available"));
+                    return const Center(child: Text("ဒေတာမရှိပါ"));
                   }
 
                   final live = data["live"];
@@ -211,11 +212,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         scrollDirection: Axis.horizontal,
                         child: Row(
                           children: [
-                            _shimmerBox(height: 90, width: 180),
+                            _shimmerBox(height: 150, width: 180),
                             const SizedBox(width: 10),
-                            _shimmerBox(height: 90, width: 180),
+                            _shimmerBox(height: 100, width: 180),
                             const SizedBox(width: 10),
-                            _shimmerBox(height: 90, width: 180), // optional extra shimmer card
+                            _shimmerBox(height: 100, width: 180), // optional extra shimmer card
                           ],
                         ),
                       )
